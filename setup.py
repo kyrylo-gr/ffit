@@ -1,13 +1,26 @@
 import setuptools
 
+NAME = "ffit"
+AUTHOR = "kyrylo.gr"
+AUTHOR_EMAIL = "git@kyrylo.gr"
+
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+
+def get_version() -> str:
+    with open(f"{NAME}/__config__.py", "r", encoding="utf-8") as file:
+        for line in file.readlines():
+            if line.startswith("__version__"):
+                return line.split("=")[1].strip().strip('"').strip("'")
+    raise ValueError("Version not found")
+
+
 setuptools.setup(
-    name="ffit",
-    version="0.0.1",
-    author="kyrylo.gr",
-    author_email="git@kyrylo.gr",
+    name=NAME,
+    version=get_version(),
+    author=AUTHOR,
+    author_email=AUTHOR_EMAIL,
     description="FastFit python library",
     long_description=long_description,
     long_description_content_type="text/markdown",
