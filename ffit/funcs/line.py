@@ -24,6 +24,14 @@ def line_jac(x: jnp.ndarray, params: jnp.ndarray) -> jnp.ndarray:
 
 
 class Line(FitLogic[LineParam]):
+    """A class for fitting a line.
+
+    Result parameters:
+    - offset: The offset of the line.
+    - amplitude: The amplitude of the line.
+
+    """
+
     param: _t.Type[LineParam] = LineParam
     func = line_func
     jac = line_jac

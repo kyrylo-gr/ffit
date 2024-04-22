@@ -1,6 +1,6 @@
 import typing as _t
 
-import numpy as np
+import jax.numpy as jnp
 
 from ..fit_logic import FitLogic
 
@@ -13,30 +13,36 @@ class ComplexSpiralParam(_t.NamedTuple):
     offset: float
 
 
-def complex_spiral_func(x, amplitude0, phi0, freq, tau, offset):  # pylint: disable=W0221
-    ampl = amplitude0 * np.exp(1j * phi0)
-    return ampl * np.exp(1j * freq * 2 * np.pi * x - x / tau) + offset + 1j * offset
+def complex_spiral_func(x, params: jnp.ndarray):
+    """Complex spiral function.
+
+    Parameters:
+    - 0: amplitude0,
+    - 1: phi0
+    - 2: freq
+    - 3: tau
+    - 4: offset
+    # TODO: Add complex offset phase
+    """
+    ampl = params[0] * jnp.exp(1j * params[1])
+    return ampl * jnp.exp(1j * params[2] * 2 * jnp.pi * x - x / params[3]) + params[4]
 
 
 class ComplexSpiral(FitLogic[ComplexSpiralParam]):
     param: _t.Type[ComplexSpiralParam] = ComplexSpiralParam
-
-    @staticmethod
-    def func(x, amplitude0, phi0, freq, tau, offset):  # pylint: disable=W0221
-        ampl = amplitude0 * np.exp(1j * phi0)
-        return ampl * np.exp(1j * freq * 2 * np.pi * x - x / tau) + offset + 1j * offset
+    func = complex_spiral_func
 
     @staticmethod
     def _guess(x, z, **kwargs):  # pylint: disable=W0237
-        the_fft = np.fft.fft(z - z.mean())
-        index_max = np.argmax(np.abs(the_fft))
-        freq = np.fft.fftfreq(len(z), d=x[1] - x[0])[index_max]
+        the_fft = jnp.fft.fft(z - z.mean())
+        index_max = jnp.argmax(jnp.abs(the_fft))
+        freq = jnp.fft.fftfreq(len(z), d=x[1] - x[0])[index_max]
         ampl = the_fft[index_max]
 
         return [
-            (np.max(np.real(z)) - np.min(np.real(z))) / 2,
-            np.angle(ampl),
+            (jnp.max(jnp.real(z)) - jnp.min(jnp.real(z))) / 2,
+            jnp.angle(ampl),
             freq,
-            np.max(x) / 2,
-            (np.max(np.real(z)) + np.min(np.real(z))) / 2,
+            jnp.max(x) / 2,
+            (jnp.max(jnp.real(z)) + jnp.min(jnp.real(z))) / 2,
         ]
