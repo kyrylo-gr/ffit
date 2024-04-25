@@ -1,3 +1,2 @@
-matplotlib
 numpy
-h5py
+scipy

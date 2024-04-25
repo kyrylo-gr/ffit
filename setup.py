@@ -3,6 +3,8 @@ import setuptools
 NAME = "ffit"
 AUTHOR = "kyrylo.gr"
 AUTHOR_EMAIL = "git@kyrylo.gr"
+DESCRIPTION = "FastFit python library"
+
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -21,17 +23,15 @@ setuptools.setup(
     version=get_version(),
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
-    description="FastFit python library",
+    description=DESCRIPTION,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/kyrylo-gr/ffit",
-    packages=setuptools.find_packages(exclude=["tests", "tests.*"]),
+    url=f"https://github.com/kyrylo-gr/{NAME}",
+    packages=setuptools.find_packages(exclude=["tests", "tests.*", "docs", "docs.*"]),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.8",
-    install_requires=[
-        "numpy",
-    ],
+    install_requires=["numpy", "scipy"],
 )

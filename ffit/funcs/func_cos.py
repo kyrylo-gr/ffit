@@ -43,19 +43,19 @@ def cos_jac(params: jnp.ndarray, x: jnp.ndarray) -> jnp.ndarray:
     )
 
 
-@jax.jit
+# @jax.jit
 def cos_guess(x, y, **kwargs):
-    off_guess = jnp.mean(y)
-    amp_guess = jnp.abs(jnp.max(y - off_guess))
+    off_guess = np.mean(y)
+    amp_guess = np.abs(np.max(y - off_guess))
     nnn = 10 * len(y)
-    fft_vals = jnp.fft.rfft(y - off_guess, n=nnn)
-    fft_freqs = jnp.fft.rfftfreq(nnn, d=x[1] - x[0])
-    freq_max_index = jnp.argmax(jnp.abs(fft_vals))
-    freq_guess = jnp.abs(fft_freqs[freq_max_index])
-    sign_ = jnp.sign(jnp.real(fft_vals[freq_max_index]))
-    phase = jnp.imag(fft_vals[freq_max_index])
+    fft_vals = np.fft.rfft(y - off_guess, n=nnn)
+    fft_freqs = np.fft.rfftfreq(nnn, d=x[1] - x[0])
+    freq_max_index = np.argmax(np.abs(fft_vals))
+    freq_guess = np.abs(fft_freqs[freq_max_index])
+    sign_ = np.sign(np.real(fft_vals[freq_max_index]))
+    phase = np.imag(fft_vals[freq_max_index])
 
-    return jnp.array([sign_ * amp_guess, freq_guess, phase, off_guess])
+    return np.array([sign_ * amp_guess, freq_guess, phase, off_guess])
 
 
 class Cos(FitLogic[CosParam]):
