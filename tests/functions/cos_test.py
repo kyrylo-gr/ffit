@@ -1,11 +1,9 @@
 import unittest
 from typing import NamedTuple
-from venv import create
 
 import numpy as np
 
 import ffit as ff
-from ffit.funcs.func_cos import Cos, CosParam
 
 
 def cos_func(x, amplitude, frequency, phi0, offset):
