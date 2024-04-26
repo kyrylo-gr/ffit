@@ -26,8 +26,17 @@ def cos_func_one(x: jnp.ndarray, params: jnp.ndarray) -> jnp.ndarray:
     return params[0] * jnp.cos(2 * jnp.pi * x * params[1] + params[2]) + params[3]
 
 
+def normalize_res_list(x: _t.Sequence[float]) -> list:
+    return [
+        abs(x[0]),
+        x[1],
+        (x[2] + (np.pi if x[0] < 0 else 0)) % (2 * np.pi),
+        x[3],
+    ]
+
+
 def cos_func(x, amplitude, frequency, phi0, offset):
-    return amplitude * np.cos(2 * jnp.pi * x * frequency + phi0) + offset
+    return amplitude * np.cos(2 * np.pi * x * frequency + phi0) + offset
 
 
 @jax.jit
@@ -55,12 +64,13 @@ def cos_guess(x, y, **kwargs):
     sign_ = np.sign(np.real(fft_vals[freq_max_index]))
     phase = np.imag(fft_vals[freq_max_index])
 
-    return np.array([sign_ * amp_guess, freq_guess, phase, off_guess])
+    return np.array(normalize_res_list([sign_ * amp_guess, freq_guess, phase, off_guess]))
 
 
 class Cos(FitLogic[CosParam]):
     param: _t.Type[CosParam] = CosParam
     func = cos_func
+    normalize_res = normalize_res_list
     func_one = cos_func_one
     jac = cos_jac
 

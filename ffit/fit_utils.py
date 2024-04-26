@@ -1,9 +1,10 @@
 from typing import Any, Callable
+
 import numpy as np
 
 
 def chisq(func: Callable, x: np.ndarray, data: np.ndarray, params: Any) -> np.ndarray:
-    return np.sum((func(x, *params) - data)**2)
+    return np.sum((func(x, *params) - data) ** 2)
 
 
 def interpolate_on_regular_grid(x, y):

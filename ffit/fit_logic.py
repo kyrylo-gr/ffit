@@ -49,6 +49,7 @@ class FitLogic(_t.Generic[_T]):
             setattr(self, f"_{k}", v)
 
     func: _t.Callable[..., _NDARRAY]
+    normalize_res: _t.Optional[_t.Callable[[_t.Sequence[float]], _t.Sequence[float]]]
     jac: _t.Optional[_t.Callable[..., _NDARRAY]] = None
 
     # @abc.abstractmethod
@@ -79,7 +80,7 @@ class FitLogic(_t.Generic[_T]):
         x: _ARRAY,
         data: _ARRAY,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
-        guess: _t.Optional[_T] = None,
+        guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         **kwargs,
     ) -> FitResult[_T]:  # Tuple[_T, _t.Callable, _NDARRAY]:
@@ -125,7 +126,11 @@ class FitLogic(_t.Generic[_T]):
         else:
             raise ValueError(f"Invalid method: {method}")
 
-        return FitResult(cls.param(*res), lambda x: cls.func(x, *res), x)
+        if cls.normalize_res is not None:  # type: ignore
+            res = cls.normalize_res(res)  # type: ignore
+        param = cls.param(*res)
+
+        return FitResult(param, lambda x: cls.func(x, *res), x)
 
     @classmethod
     async def async_fit(
@@ -241,7 +246,7 @@ class FitLogic(_t.Generic[_T]):
             return FitResult(cls.param(*guess), lambda x: cls.func(x, guess))
         mask = get_mask(mask, x)
         guess_param = cls._guess(x[mask], y[mask], **kwargs)
-        return FitResult(cls.param(*guess_param), lambda x: cls.func(x, guess_param))
+        return FitResult(cls.param(*guess_param), lambda x: cls.func(x, *guess_param))
 
     @classmethod
     def error(cls, func, x, y, **kwargs):
