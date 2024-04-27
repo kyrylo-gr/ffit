@@ -1,5 +1,4 @@
 import unittest
-from math import e
 from typing import Callable
 
 import numpy as np
