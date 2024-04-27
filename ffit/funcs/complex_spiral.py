@@ -1,6 +1,6 @@
 import typing as _t
 
-import jax.numpy as jnp
+import numpy as np
 
 from ..fit_logic import FitLogic
 
@@ -13,7 +13,7 @@ class ComplexSpiralParam(_t.NamedTuple):
     offset: float
 
 
-def complex_spiral_func(x, params: jnp.ndarray):
+def complex_spiral_func(x, params: np.ndarray):
     """Complex spiral function.
 
     Parameters:
@@ -24,8 +24,8 @@ def complex_spiral_func(x, params: jnp.ndarray):
     - 4: offset
     # TODO: Add complex offset phase
     """
-    ampl = params[0] * jnp.exp(1j * params[1])
-    return ampl * jnp.exp(1j * params[2] * 2 * jnp.pi * x - x / params[3]) + params[4]
+    ampl = params[0] * np.exp(1j * params[1])
+    return ampl * np.exp(1j * params[2] * 2 * np.pi * x - x / params[3]) + params[4]
 
 
 class ComplexSpiral(FitLogic[ComplexSpiralParam]):
@@ -34,15 +34,15 @@ class ComplexSpiral(FitLogic[ComplexSpiralParam]):
 
     @staticmethod
     def _guess(x, z, **kwargs):  # pylint: disable=W0237
-        the_fft = jnp.fft.fft(z - z.mean())
-        index_max = jnp.argmax(jnp.abs(the_fft))
-        freq = jnp.fft.fftfreq(len(z), d=x[1] - x[0])[index_max]
+        the_fft = np.fft.fft(z - z.mean())
+        index_max = np.argmax(np.abs(the_fft))
+        freq = np.fft.fftfreq(len(z), d=x[1] - x[0])[index_max]
         ampl = the_fft[index_max]
 
         return [
-            (jnp.max(jnp.real(z)) - jnp.min(jnp.real(z))) / 2,
-            jnp.angle(ampl),
+            (np.max(np.real(z)) - np.min(np.real(z))) / 2,
+            np.angle(ampl),
             freq,
-            jnp.max(x) / 2,
-            (jnp.max(jnp.real(z)) + jnp.min(jnp.real(z))) / 2,
+            np.max(x) / 2,
+            (np.max(np.real(z)) + np.min(np.real(z))) / 2,
         ]

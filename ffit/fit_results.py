@@ -1,8 +1,9 @@
 import typing as _t
 
-import jax.numpy as jnp
+import numpy as np
 
-from .utils import _NDARRAY, DEFAULT_FIT_LABEL, format_str_with_params, get_right_color
+from .config import DEFAULT_FIT_LABEL
+from .utils import _NDARRAY, format_str_with_params, get_right_color
 
 _R = _t.TypeVar("_R", bound=_t.Sequence)
 if _t.TYPE_CHECKING:
@@ -28,51 +29,86 @@ def get_x_from_ax(ax: "Axes", expected_len: _t.Optional[int] = None) -> _NDARRAY
         x = line.get_xdata()
         if expected_len and len(x) != expected_len:
             raise ValueError("X must be provided. Cannot be extracted from the plot.")
-        return jnp.array(x)
+        return np.array(x)
     raise ValueError("X must be provided.")
 
 
 def create_x_from_ax(ax: "Axes", x: _t.Optional[_NDARRAY] = None) -> _NDARRAY:
     if x is None:
         lims = ax.get_xlim()
-        return jnp.linspace(*lims, 200)
+        return np.linspace(*lims, 200)
     if len(x) < 100:
-        return jnp.linspace(jnp.min(x), jnp.max(x), 200)
+        return np.linspace(np.min(x), np.max(x), 200)
     return x
 
 
 class FitResult(_t.Tuple[_t.Optional[_R], _t.Callable]):
-    """
-    Represents the result of a fit operation.
+    """This class represents the result of a fit operation.
 
-    Attributes:
-        res: The result of the fit operation.
-        res_func: A callable function that takes a numpy array as input and returns a numpy array as output.
+    Examples
+    --------
+        >>> import ffit as ff
+        >>> result = ff.Cos.fit(x, y)
+        >>> result.res.amplitude # to get the amplitude
+        >>> result.res # to get whole result as a NamedTuple
+        >>> y0 = result.res_func(x0) # to get the fitted values
+        >>> result.plot() # to plot the fit results
+
+        All in one:
+        >>> amp = ff.Cos.fit(x, y).plot().res.amplitude
+
+    Unpack the FitResult
+    ----------------------
+    The FitResult is based on a tuple with two elements to have right type hints.
+    You can unpack the FitResult like this:
+
+        >>> res, res_func = ff.Cos.fit(x, y)
+
+    You can also unpack it after using some methods:
+
+        >>> res, res_func = ff.Cos.fit(x, y).plot(ax, x=x, label="Cosine fit")
+
+    Remember: fit method always returns FitResult that can be unpacked.
+    In case the fit fails, the FitResult will have `res=None, res_func=lambda x: [np.nan] * len(x)`.
+
+
+    Remember: The FitResult is immutable as based on the tuple, so you cannot change the values.
     """
 
     res: _t.Optional[_R]
     res_func: _t.Callable[[_NDARRAY], _NDARRAY]
     x: _t.Optional[_NDARRAY]
+    data: _t.Optional[_NDARRAY]
 
     def __init__(
         self,
         res: _t.Optional[_R] = None,
         res_func: _t.Optional[_t.Callable] = None,
         x: _t.Optional[_NDARRAY] = None,
+        data: _t.Optional[_NDARRAY] = None,
         **kwargs,
     ):
         """
-        Initialize the Main class.
+        Initialize the FitResult class.
+        ---------------------------
 
         Args:
-            res: Optional result value.
+            res: Result value as NamedTuple.
             res_func: Optional callable function for result.
-            **kwargs: Additional keyword arguments.
+            x: Original x values used to fitted.
+            data: Original data that was fitted.
+            **kwargs: Additional keyword arguments that will be ignored.
+
+        Example to create yourself.
+        -----------------------------
+            >>> result = ff.FitResult(res=(1, 2, 3), res_func=lambda x: x ** 2)
+
         """
         del kwargs
         self.res = res
-        self.res_func = res_func if res_func is not None else (lambda x: jnp.ones_like(x) * jnp.nan)
+        self.res_func = res_func if res_func is not None else (lambda x: np.ones_like(x) * np.nan)
         self.x = x
+        self.data = data
 
     def __new__(
         cls,
@@ -96,6 +132,29 @@ class FitResult(_t.Tuple[_t.Optional[_R], _t.Callable]):
         title: _t.Optional[str] = None,
         **kwargs,
     ):
+        """Plot the fit results on the given axes.
+
+        Args:
+            ax (Optional[Axes]): The axes on which to plot the fit results. If None, a new axes will be created.
+            label (str): The label for the plot. Defaults to ffit.config.DEFAULT_FIT_LABEL.
+            color (Optional[Union[str, int]]): The color of the plot. If None, a default color will be used.
+            title (Optional[str]): The title for the plot. If provided, it will be appended to the existing title.
+            **kwargs: Additional keyword arguments to be passed to the plot function.
+
+        Returns:
+            FitResults: The FitResults object itself.
+
+        Example:
+            ```
+            >>> result = ff.Cos.fit(x, y)
+            >>> result.plot() # ax will be get from plt.gca()
+            >>> result.plot(ax, x=x, label="Cosine fit")
+            >>> result.plot(ax, x=x, label="Cosine fit", color="r")
+            ```
+        Worth to mention: title will be appended to the existing title with a new line.
+
+
+        """
         if ax is None:
             ax = get_ax_from_gca()
 
@@ -144,7 +203,7 @@ class FitArrayResult(_t.Tuple[_t.List[_t.Optional[_R]], _t.Callable]):
         """
         del kwargs
         self.res = res
-        self.res_func = res_func if res_func is not None else (lambda x: jnp.ones_like(x) * jnp.nan)
+        self.res_func = res_func if res_func is not None else (lambda x: np.ones_like(x) * np.nan)
         self.x = x
         self.extracted_data = {}
 
@@ -157,7 +216,7 @@ class FitArrayResult(_t.Tuple[_t.List[_t.Optional[_R]], _t.Callable]):
     ):
 
         if res_func is None:
-            res_func = lambda x: jnp.ones_like(x) * jnp.nan  # noqa: E731
+            res_func = lambda x: np.ones_like(x) * np.nan  # noqa: E731
 
         new = super().__new__(cls, (res, res_func))  # type: ignore
         return new
@@ -185,12 +244,12 @@ class FitArrayResult(_t.Tuple[_t.List[_t.Optional[_R]], _t.Callable]):
 
         def get_key(res: FitResult[_R]):
             if res.res is None:
-                return jnp.nan
+                return np.nan
             if isinstance(parameter, int):
                 return res.res[parameter]  # type: ignore
             return getattr(res.res, parameter)
 
-        return jnp.array([get_key(f) for f in self.res])
+        return np.array([get_key(f) for f in self.res])
 
     def plot(
         self,

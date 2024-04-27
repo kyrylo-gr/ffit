@@ -1,21 +1,23 @@
 # flake8: noqa: F401
 
-from typing import Dict as _DICT
+import typing as _t
 
 from ..fit_logic import FitLogic
 from .complex_spiral import ComplexSpiral, ComplexSpiralParam
-from .damped_exp import DampedExp, DampedExpParam
 from .func_cos import Cos, CosParam
-from .hyperbola import Hyperbola, HyperbolaParam
-from .line import Line, LineParam
-from .lorentz import LorentzComplex, LorentzParam
+from .func_exp import Exp, ExpParam
+from .func_hyperbola import Hyperbola, HyperbolaParam
+from .func_line import Line, LineParam
+from .func_log import Log, LogParam
+from .func_lorentzian import Lorentzian, LorentzianParam
+from .func_lorentzian_complex import LorentzComplex, LorentzParam
 
-FIT_FUNCTIONS: _DICT[str, FitLogic] = {
+FIT_FUNCTIONS: _t.Dict[str, _t.Type[FitLogic]] = {
     "cos": Cos,
     "sin": Cos,
     "line": Line,
     "hyperbola": Hyperbola,
-    "damped_exp": DampedExp,
+    "damped_exp": Exp,
     "complex_spiral": ComplexSpiral,
     "lorentz": LorentzComplex,
 }

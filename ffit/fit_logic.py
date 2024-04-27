@@ -4,7 +4,6 @@ import abc
 import asyncio
 import typing as _t
 
-# import jax.numpy as jnp
 import numpy as np
 from scipy import optimize
 
@@ -49,7 +48,7 @@ class FitLogic(_t.Generic[_T]):
             setattr(self, f"_{k}", v)
 
     func: _t.Callable[..., _NDARRAY]
-    normalize_res: _t.Optional[_t.Callable[[_t.Sequence[float]], _t.Sequence[float]]]
+    normalize_res: _t.Optional[_t.Callable[[_t.Sequence[float]], _t.Sequence[float]]] = None
     jac: _t.Optional[_t.Callable[..., _NDARRAY]] = None
 
     # @abc.abstractmethod
@@ -84,17 +83,28 @@ class FitLogic(_t.Generic[_T]):
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         **kwargs,
     ) -> FitResult[_T]:  # Tuple[_T, _t.Callable, _NDARRAY]:
-        """Fit the data using the specified fitting function.
+        """
+        Fit the data using the specified fitting function.
 
-        Parameters:
-        - x: The independent variable.
-        - data: The dependent variable.
-        - mask: The mask array or threshold for data filtering (optional).
-        - guess: The initial guess for fit parameters (optional).
-        - kwargs: Additional keyword arguments.
+        This function returns [FitResult][ffit.fit_results.FitResult] see
+        the documentation for more information what is possible with it.
+
+
+        Args:
+            x: The independent variable.
+            data: The dependent variable.
+            mask: The mask array or threshold for data filtering (optional).
+            guess: The initial guess for fit parameters (optional).
+            method: The fitting method to use. Valid options are "least_squares", "leastsq",
+                and "curve_fit" (default: "leastsq").
+            **kwargs: Additional keyword arguments.
 
         Returns:
-        - FitResult: The result of the fit, including the fitted parameters and the fitted function.
+            FitResult: The result of the fit, including the fitted parameters and the fitted function.
+
+        Raises:
+            ValueError: If an invalid fitting method is provided.
+
         """
         x = np.asarray(x)
         data = np.asarray(data)
@@ -116,13 +126,15 @@ class FitLogic(_t.Generic[_T]):
 
             res, _ = optimize.leastsq(to_minimize, guess)
         elif method == "curve_fit":
-            res, _ = optimize.curve_fit(
-                cls.func,
-                x_masked,
-                data_masked,
-                p0=guess,
-                **kwargs,
-            )
+            raise ValueError(f"Invalid method: {method}")
+
+            # res, _ = optimize.curve_fit(
+            #     cls.func,
+            #     x_masked,
+            #     data_masked,
+            #     p0=guess,
+            #     **kwargs,
+            # )
         else:
             raise ValueError(f"Invalid method: {method}")
 
@@ -130,7 +142,7 @@ class FitLogic(_t.Generic[_T]):
             res = cls.normalize_res(res)  # type: ignore
         param = cls.param(*res)
 
-        return FitResult(param, lambda x: cls.func(x, *res), x)
+        return FitResult(param, lambda x: cls.func(x, *res), x=x, data=data)
 
     @classmethod
     async def async_fit(
@@ -226,12 +238,15 @@ class FitLogic(_t.Generic[_T]):
     def guess(
         cls,
         x,
-        y,
+        data,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_T] = None,
         **kwargs,
     ) -> FitResult[_T]:
         """Guess the initial fit parameters.
+
+        This function returns object of class [FitResult][ffit.fit_results.FitResult]. See
+        its documentation for more information what is possible with it.
 
         Parameters:
         - x: The independent variable.
@@ -243,10 +258,12 @@ class FitLogic(_t.Generic[_T]):
         - Tuple[_T, _t.Callable]: The guessed fit parameters and the fitted function.
         """
         if guess is not None:
-            return FitResult(cls.param(*guess), lambda x: cls.func(x, guess))
+            return FitResult(cls.param(*guess), lambda x: cls.func(x, guess), x=x, data=data)
         mask = get_mask(mask, x)
-        guess_param = cls._guess(x[mask], y[mask], **kwargs)
-        return FitResult(cls.param(*guess_param), lambda x: cls.func(x, *guess_param))
+        guess_param = cls._guess(x[mask], data[mask], **kwargs)
+        return FitResult(
+            cls.param(*guess_param), lambda x: cls.func(x, *guess_param), x=x, data=data
+        )
 
     @classmethod
     def error(cls, func, x, y, **kwargs):

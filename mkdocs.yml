@@ -23,8 +23,13 @@ theme:
     - search.suggest
     - search.highlight
 copyright: Library published by <a href="//kyrylo.gr/" target="_blank">kyrylo.gr</a> © 2024
+extra_javascript:
+  - stylesheets/katex.js
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.js
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/contrib/auto-render.min.js
 extra_css:
   - stylesheets/extra.css
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.css
 
 plugins:
   - search
@@ -66,13 +71,18 @@ nav:
   - Getting Started:
       - Installation: starting_guide/install
       - First steps: starting_guide/first_steps
-  - Different functions: functions/
-  - Custom function: develop/custom_function
-  - Developer Guide: develop/
-  - Releases: releases/
-  - About: about/
+  - Guide:
+      - Different functions: functions/
+      - Fit result object: fit_result
+      - Custom function: develop/custom_function
+  - Details:
+      - Developer Guide: develop/
+      - Releases: releases/
+      - About: about/
 
 markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true

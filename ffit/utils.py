@@ -1,17 +1,22 @@
+import inspect
 import re
 import typing as _t
 
-import jax.numpy as jnp
 import numpy as np
 
-_ARRAY = _t.Union[_t.Sequence[jnp.ndarray], jnp.ndarray, np.ndarray]
-_NDARRAY = _t.Union[np.ndarray, jnp.ndarray]
+from .config import DEFAULT_PRECISION
+
+# _NDARRAY = _t.Union[np.ndarray, jnp.ndarray]
+# _ARRAY = _t.Union[_t.Sequence[jnp.ndarray], jnp.ndarray, np.ndarray]
+
+_NDARRAY = np.ndarray
+_ARRAY = _t.Union[_t.Sequence[np.ndarray], np.ndarray]
 
 
 def get_mask(
     mask: _t.Optional[_t.Union[_ARRAY, float, list]] = None,
     x: _t.Optional[_ARRAY] = None,
-) -> jnp.ndarray:
+) -> np.ndarray:
     """Return a mask array based on the provided mask or threshold.
 
     Parameters:
@@ -19,17 +24,17 @@ def get_mask(
     - x: The independent variable (optional).
     Returns:
 
-    - jnp.ndarray: The mask array.
+    - np.ndarray: The mask array.
     """
     if mask is None:
         if x is None:
             raise ValueError("Either x or mask must be provided.")
-        return jnp.ones_like(jnp.array(x), dtype=bool)
+        return np.ones_like(np.array(x), dtype=bool)
     elif isinstance(mask, (int, float)):
         if x is None:
             raise ValueError("Mask cannot be float if x is not provided.")
-        return jnp.array(x) < mask
-    return jnp.array(mask)
+        return np.array(x) < mask
+    return np.array(mask)
 
 
 def param_len(cls):
@@ -37,8 +42,6 @@ def param_len(cls):
 
 
 _DEFAULT_COLORS: _t.Optional[_t.Dict[int, str]] = None
-DEFAULT_FIT_LABEL = "Fit"
-DEFAULT_PRECISION = ".2f"
 
 
 def get_color_by_int(index: int) -> _t.Optional[str]:
@@ -83,3 +86,88 @@ def format_str_with_params(
         text = text.replace(to_replace, f"{format(param, precision)}")
 
     return text
+
+
+class DynamicNamedTuple(tuple):
+    """
+    A subclass of tuple that allows accessing elements by attribute name.
+
+    This class provides a way to access elements of a tuple using attribute names instead of indices.
+    It inherits from the built-in tuple class and overrides the __getattr__ method to enable attribute-based access.
+
+    Attributes:
+        _order (Dict[str, int]): A dictionary that maps attribute names to their corresponding indices in the tuple.
+    """
+
+    _order: _t.Dict[str, int]
+
+    def __getattr__(self, name):
+        """
+        Get the element of the tuple based on the attribute name.
+
+        Args:
+            name (str): The attribute name.
+
+        Returns:
+            Any: The element of the tuple corresponding to the attribute name.
+
+        Raises:
+            AttributeError: If the attribute name is not found in the _order dictionary.
+        """
+        number = self._order[name]
+        return self[number]
+
+    def __init__(
+        self,
+        *args,
+        parameters: _t.Optional[_t.List[_t.Tuple[str, _t.Any]]] = None,
+        **kwargs,
+    ) -> None:
+        """
+        Initialize a DynamicNamedTuple object.
+
+        Args:
+            *args: Positional arguments passed to the tuple constructor.
+            parameters (Optional[List[Tuple[str, Any]]]): A list of tuples representing the
+                attribute names and their initial values.
+            **kwargs: Keyword arguments passed to the tuple constructor.
+        """
+        if parameters is None:
+            return
+        self._order = {name: i for i, (name, _) in enumerate(parameters)}
+
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls, *args)
+
+
+def get_function_args_ordered(func: _t.Callable) -> _t.List[_t.Tuple[str, _t.Any]]:
+    """For given function return the names of the arguments and their default values.
+
+    Args:
+        func (Callable): The function to inspect.
+
+    Returns:
+        List[Tuple[str, Any]]: An ordered list of tuples, where each tuple contains the argument name followed by its
+        default value or None if the argument has no default value.
+    """
+    sig = inspect.signature(func)
+    args_ordered = [
+        (param.name, param.default if param.default is not inspect.Parameter.empty else None)
+        for param in sig.parameters.values()
+    ]
+    return args_ordered
+
+
+def create_named_tuple(func: _t.Callable, data: _t.Sequence) -> DynamicNamedTuple:
+    """Create a named tuple from a function and a sequence of data."""
+    args_ordered = get_function_args_ordered(func)[1:]
+    return DynamicNamedTuple(data, parameters=args_ordered)
+
+
+def check_min_len(x: _t.Optional[_ARRAY], y: _t.Optional[_ARRAY], min_len: int) -> bool:
+    if x is None or y is None:
+        return False
+    if len(x) < min_len or len(y) < min_len:
+        return False
+
+    return True

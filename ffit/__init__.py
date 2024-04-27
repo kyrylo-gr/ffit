@@ -7,6 +7,8 @@ import typing as _t
 from .__config__ import __version__
 from .backends import SCIPY as DEFAULT_BACKEND
 from .backends import BackendProtocol, Backends, get_backend
+from .fit_logic import FitArrayResult, FitLogic, FitResult
+from .front import curve_fit, leastsq
 from .funcs import *
 
 
