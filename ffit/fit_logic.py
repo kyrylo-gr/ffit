@@ -245,17 +245,25 @@ class FitLogic(_t.Generic[_T]):
     ) -> FitResult[_T]:
         """Guess the initial fit parameters.
 
-        This function returns object of class [FitResult][ffit.fit_results.FitResult]. See
-        its documentation for more information what is possible with it.
+        This function returns an object of the class `FitResult`.
+        See its documentation for more information on what is possible with it.
 
-        Parameters:
-        - x: The independent variable.
-        - y: The dependent variable.
-        - mask: The mask array or threshold for data filtering (optional).
-        - kwargs: Additional keyword arguments.
+        Args:
+            x: The independent variable.
+            data: The dependent variable.
+            mask: The mask array or threshold for data filtering (optional).
+            guess: The initial guess for the fit parameters (optional).
+            **kwargs: Additional keyword arguments.
 
         Returns:
-        - Tuple[_T, _t.Callable]: The guessed fit parameters and the fitted function.
+            FitResult: The guess, including the guess parameters and the function based on the guess.
+
+
+        Examples:
+            >>> x = [1, 2, 3, 4, 5]
+            >>> data = [2, 4, 6, 8, 10]
+            >>> fit_guess = FitLogic.guess(x, data)
+            >>> fit_guess.plot()
         """
         if guess is not None:
             return FitResult(cls.param(*guess), lambda x: cls.func(x, guess), x=x, data=data)
@@ -265,18 +273,18 @@ class FitLogic(_t.Generic[_T]):
             cls.param(*guess_param), lambda x: cls.func(x, *guess_param), x=x, data=data
         )
 
-    @classmethod
-    def error(cls, func, x, y, **kwargs):
-        """Calculate the error between the fitted function and the data.
+    # @classmethod
+    # def error(cls, func, x, y, **kwargs):
+    #     """Calculate the error between the fitted function and the data.
 
-        Parameters:
-        - func: The fitted function.
-        - x: The independent variable.
-        - y: The dependent variable.
-        - kwargs: Additional keyword arguments.
+    #     Parameters:
+    #     - func: The fitted function.
+    #     - x: The independent variable.
+    #     - y: The dependent variable.
+    #     - kwargs: Additional keyword arguments.
 
-        Returns:
-        - float: The error between the fitted function and the data.
-        """
-        del kwargs
-        return np.sum(np.abs(func(x) - y) ** 2) / len(x)
+    #     Returns:
+    #     - float: The error between the fitted function and the data.
+    #     """
+    #     del kwargs
+    #     return np.sum(np.abs(func(x) - y) ** 2) / len(x)
