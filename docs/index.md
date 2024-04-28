@@ -1,4 +1,4 @@
-# FFit. Fast fit
+# FFit. Fit python library.
 
 <h1 align="center">
 <img src="images/ffit-logo.png" width="400">
@@ -23,4 +23,48 @@ For more installation details, please refer to the [How to install](starting_gui
 
 ## How to use
 
-For further insight, please refer to the [First Steps guide](starting_guide/first_steps.md)
+The aim of this library is to simplify the fit routine. Here are some examples of how to use it.
+
+### Simple syntax
+
+```
+import ffit as ff
+
+x = np.linspace(1, 10, 100)
+y = 2 * np.sin(x) + 3
+
+res = ff.Cos.fit(x, y).res
+
+```
+
+### Plotting result
+
+```
+import ffit as ff
+import matplotlib.pyplot as plt
+
+x = np.linspace(1, 10, 100)
+y = 2 * np.sin(x) + 3
+
+plt.plot(x, y, '.')
+
+res = ff.Cos.fit(x, y).plot().res
+```
+
+### Plotting guess
+
+The quality of fitting is heavily dependent on the initial guess. This library provides initial guesses for various popular functions to ensure effectiveness. However, if something goes awry, you can verify the guess and set it manually.
+
+```
+ff.Cos.guess(x, y).plot()
+
+ff.Cos.guess(x, y, guess=[1,2,3,4]).plot()
+
+ff.Cos.fit(x, y, guess=[1,2,3,4]).plot()
+```
+
+### Other functions
+
+Numerous functions are available out of the box. You can refer to [the documentation](https://kyrylo-gr.github.io/ffit/functions/) for more details.
+
+Moreover, you can use your custom functions with familiar syntax and still benefit from existing routines.

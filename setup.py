@@ -3,7 +3,7 @@ import setuptools
 NAME = "ffit"
 AUTHOR = "kyrylo.gr"
 AUTHOR_EMAIL = "git@kyrylo.gr"
-DESCRIPTION = "FastFit python library"
+DESCRIPTION = "Fit python library"
 
 
 with open("README.md", "r", encoding="utf-8") as fh:
