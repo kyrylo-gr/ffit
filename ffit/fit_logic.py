@@ -122,7 +122,7 @@ class FitLogic(_t.Generic[_T]):
         if method in {"least_squares", "leastsq"}:
 
             def to_minimize(args):
-                return cls.func(x_masked, *args) - data_masked
+                return np.abs(cls.func(x_masked, *args) - data_masked)
 
             res, _ = optimize.leastsq(to_minimize, guess)
         elif method == "curve_fit":
@@ -183,8 +183,10 @@ class FitLogic(_t.Generic[_T]):
         guess: _t.Optional[_T] = None,
         **kwargs,
     ) -> FitArrayResult[_T]:
-        def func():
-            return cls.async_array_fit(x, data, mask, guess, **kwargs)
+        async def func():
+            await asyncio.sleep(1)
+            return None
+            # return await cls.async_array_fit(x, data, mask, guess, **kwargs)
 
         try:
             return asyncio.run(func())

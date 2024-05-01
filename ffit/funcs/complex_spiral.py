@@ -13,7 +13,7 @@ class ComplexSpiralParam(_t.NamedTuple):
     offset: float
 
 
-def complex_spiral_func(x, params: np.ndarray):
+def complex_spiral_func(x, amplitude0, phi0, freq, tau, offset):
     """Complex spiral function.
 
     Parameters:
@@ -24,8 +24,8 @@ def complex_spiral_func(x, params: np.ndarray):
     - 4: offset
     # TODO: Add complex offset phase
     """
-    ampl = params[0] * np.exp(1j * params[1])
-    return ampl * np.exp(1j * params[2] * 2 * np.pi * x - x / params[3]) + params[4]
+    ampl = amplitude0 * np.exp(1j * phi0)
+    return ampl * np.exp(1j * freq * 2 * np.pi * x - x / tau) + offset
 
 
 class ComplexSpiral(FitLogic[ComplexSpiralParam]):
