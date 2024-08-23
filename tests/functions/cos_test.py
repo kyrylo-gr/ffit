@@ -33,13 +33,13 @@ class CosFrontTest(FuncTestingProtocol):
         params = Params(1, 2, 3, 4)
         x, y = self.prepare_xy(params)
         res = ff.Cos.fit(x, y).res
-        self.assert_almost_equal_tuple(params, res)
+        self.assert_almost_equal_tuple(params, res)  # type: ignore
 
     def test_basic_1234_guess(self):
         params = Params(1, 2, 3, 4)
         x, y = self.prepare_xy(params)
         res = ff.Cos.fit(x, y, guess=(1, 2, 3, 3)).res
-        self.assert_almost_equal_tuple(params, res)
+        self.assert_almost_equal_tuple(params, res)  # type: ignore
 
     def test_different_range(self):
         for param in self.create_different_params(4):
@@ -51,7 +51,7 @@ class CosFrontTest(FuncTestingProtocol):
                 x, y = self.prepare_xy(Params(*param), x=x)
                 res = ff.Cos.fit(x, y).res
                 self.assert_almost_equal_tuple(
-                    tuple(param), res, max(param[0], param[-1]), msg=f"t={t}"
+                    tuple(param), res, max(param[0], param[-1]), msg=f"t={t}"  # type: ignore
                 )
 
     # def test_different_range_noisy(self):

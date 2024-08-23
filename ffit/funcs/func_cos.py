@@ -1,16 +1,19 @@
 import typing as _t
+from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, check_min_len
+from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 
-class CosParam(_t.NamedTuple):
+@dataclass(frozen=True)
+class CosParam(ParamDataclass):
     amplitude: float
     frequency: float
     phi0: float
     offset: float
+    std: "_t.Optional[CosParam]" = None
 
 
 def normalize_res_list(x: _t.Sequence[float]) -> list:
@@ -22,7 +25,9 @@ def normalize_res_list(x: _t.Sequence[float]) -> list:
     ]
 
 
-def cos_func(x: _NDARRAY, amplitude: float, frequency: float, phi0: float, offset: float):
+def cos_func(
+    x: _NDARRAY, amplitude: float, frequency: float, phi0: float, offset: float
+):
     return amplitude * np.cos(2 * np.pi * x * frequency + phi0) + offset
 
 
@@ -62,10 +67,12 @@ def cos_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     sign_: float = np.sign(np.real(fft_vals[freq_max_index]))  # type: ignore
     phase: float = np.imag(fft_vals[freq_max_index])
 
-    return np.array(normalize_res_list([sign_ * amp_guess, freq_guess, phase, off_guess]))
+    return np.array(
+        normalize_res_list([sign_ * amp_guess, freq_guess, phase, off_guess])
+    )
 
 
-class Cos(FitLogic[CosParam]):
+class Cos(FitLogic[CosParam]):  # type: ignore
     r"""Fit Cos function.
 
 

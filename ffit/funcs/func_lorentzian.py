@@ -1,23 +1,29 @@
 import typing as _t
+from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, check_min_len
+from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 
-class LorentzianParam(_t.NamedTuple):
+@dataclass(frozen=True)
+class LorentzianParam(ParamDataclass):
     amplitude: float
     gamma: float
     x0: float
     offset: float
+
+    std: "_t.Optional[LorentzianParam]" = None
 
     @property
     def sigma(self):
         return self.gamma * 2
 
 
-def lorentzian_func(x: _NDARRAY, amplitude: float, gamma: float, x0: float, offset: float):
+def lorentzian_func(
+    x: _NDARRAY, amplitude: float, gamma: float, x0: float, offset: float
+):
     return amplitude * gamma**2 / ((x - x0) ** 2 + gamma**2) + offset
 
 
@@ -41,7 +47,7 @@ def normalize_res_list(x: _t.Sequence[float]) -> list:
     return [x[0], abs(x[1]), x[2], x[3]]
 
 
-class Lorentzian(FitLogic[LorentzianParam]):
+class Lorentzian(FitLogic[LorentzianParam]):  # type: ignore
     r"""Fit Lorentzian function.
 
 

@@ -7,10 +7,18 @@ import typing as _t
 import numpy as np
 from scipy import optimize
 
-from .fit_results import FitArrayResult, FitResult
-from .utils import _ARRAY, _NDARRAY, get_mask, param_len
+from .fit_results import FitArrayResult, FitResult, FitWithErrorResult
+from .utils import (
+    _ARRAY,
+    _NDARRAY,
+    get_mask,
+    get_masked_data,
+    get_random_subarrays,
+    param_len,
+)
 
 _T = _t.TypeVar("_T", bound=_t.Sequence)
+_POSSIBLE_FIT_METHODS = _t.Literal["least_squares", "leastsq", "curve_fit"]
 
 
 class FitLogic(_t.Generic[_T]):
@@ -48,7 +56,10 @@ class FitLogic(_t.Generic[_T]):
             setattr(self, f"_{k}", v)
 
     func: _t.Callable[..., _NDARRAY]
-    normalize_res: _t.Optional[_t.Callable[[_t.Sequence[float]], _t.Sequence[float]]] = None
+    func_std: _t.Callable[..., _NDARRAY]
+    normalize_res: _t.Optional[
+        _t.Callable[[_t.Sequence[float]], _t.Sequence[float]]
+    ] = None
     jac: _t.Optional[_t.Callable[..., _NDARRAY]] = None
 
     # @abc.abstractmethod
@@ -106,43 +117,30 @@ class FitLogic(_t.Generic[_T]):
             ValueError: If an invalid fitting method is provided.
 
         """
-        x = np.asarray(x)
-        data = np.asarray(data)
+        # Convert x and data to numpy arrays
+        x, data = np.asarray(x), np.asarray(data)
 
-        mask = get_mask(mask, x)
-
-        if np.sum(mask) < param_len(cls.param):
+        # Mask the data and check that length of masked data is greater than lens of params
+        x_masked, data_masked = get_masked_data(x, data, mask, param_len(cls.param))
+        if len(x_masked) == 0 or len(data_masked) == 0:
             return FitResult()
-        x_masked = x[mask]
-        data_masked = data[mask]
 
+        # Get a guess if not provided
         if guess is None:
             guess = cls._guess(x_masked, data_masked, **kwargs)
 
-        if method in {"least_squares", "leastsq"}:
+        guess = tuple(guess)  # type: ignore
+        # Fit the data
+        res, cov = cls._fit(x_masked, data_masked, guess, method)
 
-            def to_minimize(args):
-                return np.abs(cls.func(x_masked, *args) - data_masked)
-
-            res, _ = optimize.leastsq(to_minimize, guess)
-        elif method == "curve_fit":
-            raise ValueError(f"Invalid method: {method}")
-
-            # res, _ = optimize.curve_fit(
-            #     cls.func,
-            #     x_masked,
-            #     data_masked,
-            #     p0=guess,
-            #     **kwargs,
-            # )
-        else:
-            raise ValueError(f"Invalid method: {method}")
-
+        # Normalize the result if necessary. Like some periodicity that should not be important
         if cls.normalize_res is not None:  # type: ignore
             res = cls.normalize_res(res)  # type: ignore
+
+        # Convert the result to a parameter object (NamedTuple)
         param = cls.param(*res)
 
-        return FitResult(param, lambda x: cls.func(x, *res), x=x, data=data)
+        return FitResult(param, lambda x: cls.func(x, *res), x=x, data=data, cov=cov)
 
     @classmethod
     async def async_fit(
@@ -165,7 +163,8 @@ class FitLogic(_t.Generic[_T]):
         **kwargs,
     ) -> FitArrayResult[_T]:
         tasks = [
-            cls.async_fit(x, data[i], mask=mask, guess=guess, **kwargs) for i in range(len(data))
+            cls.async_fit(x, data[i], mask=mask, guess=guess, **kwargs)
+            for i in range(len(data))
         ]
         results = await asyncio.gather(*tasks)
 
@@ -189,7 +188,7 @@ class FitLogic(_t.Generic[_T]):
             # return await cls.async_array_fit(x, data, mask, guess, **kwargs)
 
         try:
-            return asyncio.run(func())
+            return asyncio.run(func())  # type: ignore
         except RuntimeError as exc:
             raise RuntimeError(
                 "asyncio.run() cannot be called from a running event loop."
@@ -268,9 +267,11 @@ class FitLogic(_t.Generic[_T]):
             >>> fit_guess.plot()
         """
         if guess is not None:
-            return FitResult(cls.param(*guess), lambda x: cls.func(x, guess), x=x, data=data)
-        mask = get_mask(mask, x)
-        guess_param = cls._guess(x[mask], data[mask], **kwargs)
+            return FitResult(
+                cls.param(*guess), lambda x: cls.func(x, *guess), x=x, data=data
+            )
+        x_masked, data_masked = get_masked_data(x, data, mask, mask_min_len=1)
+        guess_param = cls._guess(x_masked, data_masked, **kwargs)
         return FitResult(
             cls.param(*guess_param), lambda x: cls.func(x, *guess_param), x=x, data=data
         )
@@ -290,3 +291,110 @@ class FitLogic(_t.Generic[_T]):
     #     """
     #     del kwargs
     #     return np.sum(np.abs(func(x) - y) ** 2) / len(x)
+
+    @classmethod
+    def bootstrapping(
+        cls,
+        x: _ARRAY,
+        data: _ARRAY,
+        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
+        method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
+        sampling_len: _t.Optional[int] = None,
+        sampling_portion: float = 0.75,
+        **kwargs,
+    ) -> FitWithErrorResult[_T]:  # Tuple[_T, _t.Callable, _NDARRAY]:
+        """
+        Fit the data using the specified fitting function.
+
+        This function returns [FitResult][ffit.fit_results.FitResult] see
+        the documentation for more information what is possible with it.
+
+
+        Args:
+            x: The independent variable.
+            data: The dependent variable.
+            mask: The mask array or threshold for data filtering (optional).
+            guess: The initial guess for fit parameters (optional).
+            method: The fitting method to use. Valid options are "least_squares", "leastsq",
+                and "curve_fit" (default: "leastsq").
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            FitResult: The result of the fit, including the fitted parameters and the fitted function.
+
+        Raises:
+            ValueError: If an invalid fitting method is provided.
+
+        """
+        # Convert x and data to numpy arrays
+        x, data = np.asarray(x), np.asarray(data)
+
+        mask = get_mask(mask, x)
+
+        # Mask the data and check that length of masked data is greater than lens of params
+        x_masked, data_masked = get_masked_data(x, data, mask, param_len(cls.param))
+        if len(x_masked) == 0 or len(data_masked) == 0:
+            return FitWithErrorResult()
+
+        # Get a guess if not provided
+        if guess is None:
+            guess = cls._guess(x_masked, data_masked, **kwargs)
+
+        # Fit ones to get the best initial guess
+        guess, _ = cls._fit(x_masked, data_masked, guess, method)
+
+        # Set sampling length if not provided
+        sampling_len = (
+            int(min(max(len(x_masked) / 10, 1000), 10_000))
+            if sampling_len is None
+            else sampling_len
+        )
+
+        # Run fit on random subarrays
+        all_res = []
+        for xx, yy in get_random_subarrays(
+            x_masked, data_masked, sampling_len, sampling_portion
+        ):
+            res, cov = cls._fit(xx, yy, guess, method)
+            if cls.normalize_res is not None:  # type: ignore
+                res = cls.normalize_res(res)  # type: ignore
+            all_res.append(res)
+
+        res_means = np.mean(all_res, axis=0)
+        res_std = np.std(all_res, axis=0)
+
+        # Convert the result to a parameter object (NamedTuple)
+        param_std = cls.param(*res_std)
+        param = cls.param(*res_means, std=param_std)
+
+        return FitWithErrorResult(
+            param,
+            lambda x: cls.func(x, *res),
+            x=x,
+            data=data,
+            cov=cov,
+            stderr=param_std,
+            stdfunc=lambda x: cls.func_std(x, *res_means, *res_std),
+        )
+
+    @classmethod
+    def _fit(cls, x, y, guess, method: _POSSIBLE_FIT_METHODS):
+        if method in {"least_squares", "leastsq"}:
+
+            def to_minimize(args):
+                return np.abs(cls.func(x, *args) - y)
+
+            return optimize.leastsq(to_minimize, guess)
+        elif method == "curve_fit":
+            raise ValueError(f"Invalid method: {method}")
+
+            # res, _ = optimize.curve_fit(
+            #     cls.func,
+            #     x_masked,
+            #     data_masked,
+            #     p0=guess,
+            #     **kwargs,
+            # )
+        else:
+            raise ValueError(f"Invalid method: {method}")

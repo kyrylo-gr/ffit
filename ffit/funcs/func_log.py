@@ -1,15 +1,19 @@
 import typing as _t
+from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, check_min_len
+from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 
-class LogParam(_t.NamedTuple):
+@dataclass(frozen=True)
+class LogParam(ParamDataclass):
     amplitude: float
     rate: float
     offset: float
+
+    std: "_t.Optional[LogParam]" = None
 
     def amplitude_at_base(self, base: float = 10):
         return self.amplitude / np.log(base)
@@ -70,7 +74,7 @@ def log_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     return np.array([a, b, c])
 
 
-class Log(FitLogic[LogParam]):
+class Log(FitLogic[LogParam]):  # type: ignore
     r"""Fit Log function.
 
 

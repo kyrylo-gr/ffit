@@ -1,14 +1,17 @@
 import typing as _t
+from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, check_min_len
+from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 
-class LineParam(_t.NamedTuple):
+@dataclass(frozen=True)
+class LineParam(ParamDataclass):
     offset: float
     amplitude: float
+    std: "_t.Optional[LineParam]" = None
 
 
 def line_func(x: _NDARRAY, offset: float, amplitude: float) -> _NDARRAY:
@@ -29,17 +32,19 @@ def line_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     if not check_min_len(x, y, 2):
         return np.ones(2)
 
+    y = np.sort(y)
+    x = np.sort(x)
     average_size = max(len(y) // 10, 1)
     y1 = np.average(y[:average_size])
     y2 = np.average(y[-average_size:])
 
-    amplitude = (y2 - y1) / (x[-1] - x[0])
+    amplitude = (y2 - y1) / (x[-1] - x[0]) if x[-1] != x[0] else 1
     offset = y1 - x[0] * amplitude
 
     return np.array([offset, amplitude])
 
 
-class Line(FitLogic[LineParam]):
+class Line(FitLogic[LineParam]):  # type: ignore
     r"""Fit Hyperbola function.
 
 

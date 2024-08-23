@@ -1,11 +1,14 @@
 import typing as _t
+from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
+from ..utils import ParamDataclass
 
 
-class LorentzParam(_t.NamedTuple):
+@dataclass(frozen=True)
+class LorentzParam(ParamDataclass):
     f0: float
     amplitude: float
     bandwidth: float
@@ -14,14 +17,19 @@ class LorentzParam(_t.NamedTuple):
     delay: float
     amplitude_phase: float
 
+    std: "_t.Optional[LorentzParam]" = None
 
-class LorentzComplex(FitLogic[LorentzParam]):
+
+class LorentzComplex(FitLogic[LorentzParam]):  # type: ignore
     param: _t.Type[LorentzParam] = LorentzParam
 
     @staticmethod
     def func(freqs, f0, ampl, bandwidth, phi0, ampl0, delay, phaseampl):
+        del delay
         orig = ampl0 * np.exp(1j * phi0)
-        return (orig - np.exp(1j * phaseampl) * ampl / (1j * (freqs - f0) / (bandwidth) + 1)) * 1
+        return (
+            orig - np.exp(1j * phaseampl) * ampl / (1j * (freqs - f0) / (bandwidth) + 1)
+        ) * 1
         # np.exp(1j * 2 * np.pi * (freqs - f0) * delay)
 
     @staticmethod

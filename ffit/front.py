@@ -1,5 +1,6 @@
 import typing as _t
 
+import numpy as np
 from scipy import optimize
 
 from .fit_results import FitResult
@@ -14,7 +15,12 @@ def curve_fit(
     data: _NDARRAY,
     p0: _t.Optional[_t.List[_t.Any]] = None,
     *,
-    bounds: _t.Optional[_t.List[_t.Tuple[_t.Any, _t.Any]]] = None,
+    bounds: _t.Optional[
+        _t.Union[_t.List[_t.Tuple[_t.Any, _t.Any]], _t.Tuple[_t.Any, _t.Any]]
+    ] = (
+        -np.inf,
+        np.inf,
+    ),
     **kwargs,
 ) -> FitResult[DynamicNamedTuple]:
     """Fit a curve with curve_fit method.
@@ -38,7 +44,9 @@ def curve_fit(
     return FitResult(res, lambda x: func(x, *res), x=x, data=data)
 
 
-def leastsq(func: _t.Callable, x0: _t.Sequence, args: tuple = (), **kwarg) -> FitResult[tuple]:
+def leastsq(
+    func: _t.Callable, x0: _t.Sequence, args: tuple = (), **kwarg
+) -> FitResult[tuple]:
     """Perform a least squares optimization using the `leastsq` function from the `optimize` module.
 
     This function returns [FitResult][ffit.fit_results.FitResult] see
@@ -53,6 +61,7 @@ def leastsq(func: _t.Callable, x0: _t.Sequence, args: tuple = (), **kwarg) -> Fi
     Returns:
         A `FitResult` object containing the optimization result and a function to evaluate the optimized parameters.
     """
-    res_all = optimize.leastsq(func, x0, args=args, **kwarg)
 
-    return FitResult(res_all, lambda x: func(x, *res_all))
+    res, cov = optimize.leastsq(func, x0, args=args, **kwarg)
+    # print(res)
+    return FitResult(res, lambda x: func(res), cov=cov)

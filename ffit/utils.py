@@ -1,6 +1,7 @@
 import inspect
 import re
 import typing as _t
+from dataclasses import fields
 
 import numpy as np
 
@@ -37,6 +38,18 @@ def get_mask(
     return np.array(mask)
 
 
+def get_masked_data(
+    x: _NDARRAY,
+    data: _NDARRAY,
+    mask: _t.Optional[_t.Union[_ARRAY, float]],
+    mask_min_len: int = 1,
+) -> _t.Tuple[_NDARRAY, _NDARRAY]:
+    mask = get_mask(mask, x)
+    if np.sum(mask) < mask_min_len:
+        return np.array([]), np.array([])
+    return x[mask], data[mask]
+
+
 def param_len(cls):
     return len(cls.__annotations__)
 
@@ -49,13 +62,17 @@ def get_color_by_int(index: int) -> _t.Optional[str]:
     if _DEFAULT_COLORS is None:
         import matplotlib as mpl
 
-        _DEFAULT_COLORS = dict(enumerate(mpl.rcParams["axes.prop_cycle"].by_key()["color"]))
+        _DEFAULT_COLORS = dict(
+            enumerate(mpl.rcParams["axes.prop_cycle"].by_key()["color"])
+        )
 
     return _DEFAULT_COLORS.get(index % len(_DEFAULT_COLORS))
 
 
 def get_right_color(color: _t.Optional[_t.Union[str, int]]) -> _t.Optional[str]:
-    if isinstance(color, int) or (isinstance(color, str) and color.isdigit() and len(color) == 1):
+    if isinstance(color, int) or (
+        isinstance(color, str) and color.isdigit() and len(color) == 1
+    ):
 
         return get_color_by_int(int(color))
     return color
@@ -152,7 +169,10 @@ def get_function_args_ordered(func: _t.Callable) -> _t.List[_t.Tuple[str, _t.Any
     """
     sig = inspect.signature(func)
     args_ordered = [
-        (param.name, param.default if param.default is not inspect.Parameter.empty else None)
+        (
+            param.name,
+            param.default if param.default is not inspect.Parameter.empty else None,
+        )
         for param in sig.parameters.values()
     ]
     return args_ordered
@@ -171,3 +191,45 @@ def check_min_len(x: _t.Optional[_ARRAY], y: _t.Optional[_ARRAY], min_len: int) 
         return False
 
     return True
+
+
+def get_random_subarrays(x, y, num_subarrays=10, selection_ratio=0.75):
+    sub_y = []
+    total_elements = len(x)
+    num_elements_to_select = int(total_elements * selection_ratio)
+
+    for _ in range(num_subarrays):
+        # Randomly choose a set of indexes corresponding to 75% of the elements
+        selected_indexes = np.random.choice(
+            np.arange(total_elements), size=num_elements_to_select, replace=False
+        )
+
+        # Create the subarray using the selected indexes
+        sub_y.append([x[selected_indexes], y[selected_indexes]])
+
+    return np.array(sub_y)
+
+
+class ParamDataclass:
+    _len = 0
+    _custom_param = "std"
+
+    def __iter__(self):
+        # Iterate over all fields of the dataclass
+        for field in fields(self):  # type: ignore
+            if field.name.startswith("_") or field.name == self._custom_param:
+                continue
+            yield getattr(self, field.name)
+
+    def __post_init__(self, *args, **kwargs):
+        field_lens = sum(
+            (
+                (0 if f.name.startswith("_") or f.name == self._custom_param else 1)
+                for f in fields(self)  # type: ignore
+            ),
+            0,
+        )
+        object.__setattr__(self, "_len", field_lens)
+
+    def __len__(self):
+        return self._len  # type: ignore

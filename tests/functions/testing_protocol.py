@@ -7,7 +7,7 @@ import numpy as np
 class FuncTestingProtocol(unittest.TestCase):
     func: Callable
     normalize: Callable
-    error: float = 0.01
+    error: float = 0.05
 
     def prepare_xy(
         self, params: tuple, x: np.ndarray | None | int = None

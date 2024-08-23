@@ -1,16 +1,19 @@
 import typing as _t
+from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import check_min_len
+from ..utils import ParamDataclass, check_min_len
 
 
-class HyperbolaParam(_t.NamedTuple):
+@dataclass(frozen=True)
+class HyperbolaParam(ParamDataclass):
     semix: float
     semiy: float
     x0: float
     y0: float
+    std: "_t.Optional[HyperbolaParam]" = None
 
 
 def hyperbola_func(x, semix, semiy, x0, y0):
@@ -26,7 +29,11 @@ def hyperbola_guess(x, y, **kwargs):
         average_size = max(len(y) // 10, 1)
         smoth_y = np.convolve(y, np.ones(average_size) / average_size, mode="valid")
         smoth_y = np.diff(smoth_y)
-        direction = 1 if np.mean(smoth_y[:average_size]) > np.mean(smoth_y[-average_size:]) else -1
+        direction = (
+            1
+            if np.mean(smoth_y[:average_size]) > np.mean(smoth_y[-average_size:])
+            else -1
+        )
 
     x0 = x[np.argmax(y)] if direction > 0 else x[np.argmin(y)]
     y0 = np.max(y) if direction > 0 else np.min(y)
@@ -43,7 +50,7 @@ def normalize_res_list(x: _t.Sequence[float]) -> list:
     return [abs(x[0]), x[1], x[2], x[3]]
 
 
-class Hyperbola(FitLogic[HyperbolaParam]):
+class Hyperbola(FitLogic[HyperbolaParam]):  # type: ignore
     r"""Fit Hyperbola function.
 
 

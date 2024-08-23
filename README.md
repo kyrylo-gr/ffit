@@ -1,7 +1,7 @@
 # FFit. Fit python library.
 
 <h1 align="center">
-<img src="images/ffit-logo.png" width="400">
+<img src="../docs/images/ffit-logo.png" width="400">
 </h1><br>
 
 [![Pypi](https://img.shields.io/pypi/v/ffit.svg)](https://pypi.org/project/ffit/)
@@ -68,3 +68,15 @@ ff.Cos.fit(x, y, guess=[1,2,3,4]).plot()
 Numerous functions are available out of the box. You can refer to [the documentation](https://kyrylo-gr.github.io/ffit/functions/) for more details.
 
 Moreover, you can use your custom functions with familiar syntax and still benefit from existing routines.
+
+## Any custom function
+
+For any custom function, you can create a custom class for a guessing algorithm or use `curve_fit` or `least_square` like this:
+
+```
+def line_func(x, amp, offset):
+    return amp * x + offset
+
+fit_amp = ff.curve_fit(line_func, x, y).plot().res.amp
+
+```
