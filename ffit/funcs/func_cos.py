@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..utils import _ARRAY, _NDARRAY, ParamDataclass, check_min_len
 
 
 @dataclass(frozen=True)
@@ -16,19 +16,89 @@ class CosParam(ParamDataclass):
     std: "_t.Optional[CosParam]" = None
 
 
-def normalize_res_list(x: _t.Sequence[float]) -> list:
-    return [
-        abs(x[0]),
-        x[1],
-        (x[2] + (np.pi if x[0] < 0 else 0)) % (2 * np.pi),
-        x[3],
-    ]
+def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
+    return np.array(
+        [
+            abs(x[0]),
+            x[1],
+            (x[2] + (np.pi if x[0] < 0 else 0)) % (2 * np.pi),
+            x[3],
+        ]
+    )
 
 
 def cos_func(
     x: _NDARRAY, amplitude: float, frequency: float, phi0: float, offset: float
 ):
     return amplitude * np.cos(2 * np.pi * x * frequency + phi0) + offset
+
+
+def std_monte_carlo(
+    x: _NDARRAY,
+    func: _t.Callable,
+    means: _ARRAY,
+    stds: _ARRAY,
+    n_simulations: int = 10_000,
+) -> _NDARRAY:
+    # Arrays to hold the results of each simulation
+    simulated_functions = np.zeros((n_simulations, len(x)))
+    # Sampling from normal distribution
+    values = np.array(
+        [np.random.normal(m, s, n_simulations) for m, s in zip(means, stds)]
+    )
+    # Monte Carlo simulation
+    for i in range(n_simulations):
+        simulated_functions[i, :] = func(x, *values[:, i])
+
+    return np.std(simulated_functions, axis=0)
+
+
+def cos_error(
+    x: _NDARRAY,
+    amplitude: float,
+    frequency: float,
+    phi0: float,
+    offset: float,
+    amplitude_std: float,
+    frequency_std: float,
+    phi0_std: float,
+    offset_std: float,
+):
+    # del offset
+    # amplitude_error = np.cos(2 * np.pi * x * frequency + phi0) * amplitude_std
+    # frequency_error = (
+    #     amplitude * np.sin(2 * np.pi * x * frequency + phi0) * 2 * np.pi * x
+    # ) * frequency_std
+    # phi0_error = amplitude * np.sin(2 * np.pi * x * frequency + phi0) * phi0_std
+    # offset_error = offset_std
+    # return np.sqrt(
+    #     amplitude_error**2 + frequency_error**2 + phi0_error**2 + offset_error**2
+    # ) # Mean values of the parameters
+    return std_monte_carlo(
+        x,
+        cos_func,
+        [amplitude, frequency, phi0, offset],
+        [amplitude_std, frequency_std, phi0_std, offset_std],
+    )
+    # # Number of Monte Carlo simulations
+    # n_simulations = 10000
+
+    # # Arrays to hold the results of each simulation
+    # simulated_functions = np.zeros((n_simulations, len(x)))
+
+    # # Sampling from normal distribution
+    # amplitudes = np.random.normal(amplitude, amplitude_std, n_simulations)
+    # frequencies = np.random.normal(frequency, frequency_std, n_simulations)
+    # phi0s = np.random.normal(phi0, phi0_std, n_simulations)
+    # offsets = np.random.normal(offset, offset_std, n_simulations)
+
+    # # Monte Carlo simulation
+    # for i in range(n_simulations):
+    #     simulated_functions[i, :] = cos_func(
+    #         x, amplitudes[i], frequencies[i], phi0s[i], offsets[i]
+    #     )
+
+    # return np.std(simulated_functions, axis=0)
 
 
 def cos_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
@@ -107,6 +177,8 @@ class Cos(FitLogic[CosParam]):  # type: ignore
     """
 
     param: _t.Type[CosParam] = CosParam
-    func = cos_func
-    normalize_res = normalize_res_list
-    _guess = cos_guess
+    func = staticmethod(cos_func)
+    func_std = staticmethod(cos_error)
+
+    normalize_res = staticmethod(normalize_res_list)
+    _guess = staticmethod(cos_guess)

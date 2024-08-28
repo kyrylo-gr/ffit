@@ -73,5 +73,5 @@ class Line(FitLogic[LineParam]):  # type: ignore
     """
 
     param: _t.Type[LineParam] = LineParam
-    func = line_func
-    _guess = line_guess
+    func = staticmethod(line_func)
+    _guess = staticmethod(line_guess)

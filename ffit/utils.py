@@ -11,7 +11,10 @@ from .config import DEFAULT_PRECISION
 # _ARRAY = _t.Union[_t.Sequence[jnp.ndarray], jnp.ndarray, np.ndarray]
 
 _NDARRAY = np.ndarray
-_ARRAY = _t.Union[_t.Sequence[np.ndarray], np.ndarray]
+_ARRAY = _t.Union[_t.Sequence[np.ndarray], np.ndarray, _t.Sequence[float]]
+_2DARRAY = _t.Union[
+    _t.Sequence[np.ndarray], np.ndarray, _t.Sequence[_t.Sequence[float]]
+]
 
 
 def get_mask(
@@ -233,3 +236,32 @@ class ParamDataclass:
 
     def __len__(self):
         return self._len  # type: ignore
+
+    @classmethod
+    def fields(cls):
+        return tuple(
+            (
+                f.name
+                for f in fields(cls)  # type: ignore
+                if (not f.name.startswith("_") and f.name != cls._custom_param)
+            )
+        )
+
+
+def mask_func(func, mask, mask_values):
+    def masked_func(x, *args):
+        params_full = np.zeros_like(mask).astype(float)
+        params_full[mask] = args
+        params_full[~mask] = mask_values[~mask]
+        # print(params_full)
+        return func(x, *params_full)
+
+    return masked_func
+
+
+def mask_func_result(func, mask):
+    def masked_func(*args, **kwargs2):
+        res = func(*args, **kwargs2)
+        return res[mask]
+
+    return masked_func

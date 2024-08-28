@@ -156,6 +156,6 @@ class Exp(FitLogic[ExpParam]):  # type: ignore
 
     param: _t.Type[ExpParam] = ExpParam
 
-    func = exp_func
-    func_std = exp_error
-    _guess = exp_guess
+    func = staticmethod(exp_func)
+    func_std = staticmethod(exp_error)
+    _guess = staticmethod(exp_guess)

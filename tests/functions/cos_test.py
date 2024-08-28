@@ -32,13 +32,13 @@ class CosFrontTest(FuncTestingProtocol):
     def test_basic_1234(self):
         params = Params(1, 2, 3, 4)
         x, y = self.prepare_xy(params)
-        res = ff.Cos.fit(x, y).res
+        res = ff.Cos().fit(x, y).res
         self.assert_almost_equal_tuple(params, res)  # type: ignore
 
     def test_basic_1234_guess(self):
         params = Params(1, 2, 3, 4)
         x, y = self.prepare_xy(params)
-        res = ff.Cos.fit(x, y, guess=(1, 2, 3, 3)).res
+        res = ff.Cos().fit(x, y, guess=(1, 2, 3, 3)).res
         self.assert_almost_equal_tuple(params, res)  # type: ignore
 
     def test_different_range(self):
@@ -49,7 +49,7 @@ class CosFrontTest(FuncTestingProtocol):
             for t in np.arange(0.5, 5, 0.5):
                 x = np.linspace(0, period * t, 100)
                 x, y = self.prepare_xy(Params(*param), x=x)
-                res = ff.Cos.fit(x, y).res
+                res = ff.Cos().fit(x, y).res
                 self.assert_almost_equal_tuple(
                     tuple(param), res, max(param[0], param[-1]), msg=f"t={t}"  # type: ignore
                 )
@@ -63,7 +63,7 @@ class CosFrontTest(FuncTestingProtocol):
     #             x = np.linspace(0, period * t, 100)
     #             x, y = self.prepare_xy(Params(*param), x=x)
     #             y += np.random.normal(0, 0.1 * param[0], len(y))
-    #             res = ff.Cos.fit(x, y).res
+    #             res = ff.Cos().fit(x, y).res
     #             self.assert_almost_equal_tuple(
     #                 tuple(param),
     #                 res,

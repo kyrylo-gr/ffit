@@ -25,21 +25,23 @@ class LogFrontTest(FuncTestingProtocol):
     def test_basic_1234(self):
         params = Params(1, 2, 3)
         x, y = self.prepare_xy(params, x=np.linspace(1, 1000, 100))
-        res = ff.Log.fit(x, y).res
-        self.assert_almost_equal_tuple(params, res, allow_error=[None, 10, None])
+        res = ff.Log().fit(x, y).res
+        assert res is not None
+        self.assert_almost_equal_tuple(params, tuple(res), allow_error=[None, 10, None])
 
     def test_basic_1234_guess(self):
         params = Params(1, 2, 3)
         x, y = self.prepare_xy(params, x=np.linspace(1, 3, 100))
-        res = ff.Log.fit(x, y, guess=(1, 2, 3)).res
-        self.assert_almost_equal_tuple(params, res)
+        res = ff.Log().fit(x, y, guess=(1, 2, 3)).res
+        assert res is not None
+        self.assert_almost_equal_tuple(params, tuple(res))
 
     # def test_different_range(self):
     #     for param in self.create_different_params(3, values=np.arange(-3, 3, 1)):
     #         param = normalize_res(param)
     #         for start in np.arange(1, 5, 1):
     #             x, y = self.prepare_xy(Params(*param), x=np.linspace(start, start + 200, 100))
-    #             res = ff.Log.fit(x, y).res
+    #             res = ff.Log().fit(x, y).res
     #             self.assert_almost_equal_tuple(
     #                 tuple(param),
     #                 res,

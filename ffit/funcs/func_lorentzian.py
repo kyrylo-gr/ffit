@@ -43,8 +43,8 @@ def lorentzian_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     return np.array([amplitude, gamma, x0, offset])
 
 
-def normalize_res_list(x: _t.Sequence[float]) -> list:
-    return [x[0], abs(x[1]), x[2], x[3]]
+def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
+    return np.array([x[0], abs(x[1]), x[2], x[3]])
 
 
 class Lorentzian(FitLogic[LorentzianParam]):  # type: ignore
@@ -86,6 +86,6 @@ class Lorentzian(FitLogic[LorentzianParam]):  # type: ignore
     """
 
     param: _t.Type[LorentzianParam] = LorentzianParam
-    func = lorentzian_func
-    _guess = lorentzian_guess
-    normalize_res = normalize_res_list
+    func = staticmethod(lorentzian_func)
+    _guess = staticmethod(lorentzian_guess)
+    normalize_res = staticmethod(normalize_res_list)

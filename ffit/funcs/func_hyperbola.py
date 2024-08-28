@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import ParamDataclass, check_min_len
+from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 
 @dataclass(frozen=True)
@@ -46,8 +46,8 @@ def hyperbola_guess(x, y, **kwargs):
     )
 
 
-def normalize_res_list(x: _t.Sequence[float]) -> list:
-    return [abs(x[0]), x[1], x[2], x[3]]
+def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
+    return np.array([abs(x[0]), x[1], x[2], x[3]])
 
 
 class Hyperbola(FitLogic[HyperbolaParam]):  # type: ignore
@@ -85,6 +85,6 @@ class Hyperbola(FitLogic[HyperbolaParam]):  # type: ignore
 
     param: _t.Type[HyperbolaParam] = HyperbolaParam
 
-    func = hyperbola_func
-    _guess = hyperbola_guess
-    normalize_res = normalize_res_list
+    func = staticmethod(hyperbola_func)
+    _guess = staticmethod(hyperbola_guess)
+    normalize_res = staticmethod(normalize_res_list)

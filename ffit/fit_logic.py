@@ -9,11 +9,14 @@ from scipy import optimize
 
 from .fit_results import FitArrayResult, FitResult, FitWithErrorResult
 from .utils import (
+    _2DARRAY,
     _ARRAY,
     _NDARRAY,
     get_mask,
     get_masked_data,
     get_random_subarrays,
+    mask_func,
+    mask_func_result,
     param_len,
 )
 
@@ -57,9 +60,7 @@ class FitLogic(_t.Generic[_T]):
 
     func: _t.Callable[..., _NDARRAY]
     func_std: _t.Callable[..., _NDARRAY]
-    normalize_res: _t.Optional[
-        _t.Callable[[_t.Sequence[float]], _t.Sequence[float]]
-    ] = None
+    normalize_res: _t.Optional[_t.Callable[[_t.Sequence[float]], _NDARRAY]] = None
     jac: _t.Optional[_t.Callable[..., _NDARRAY]] = None
 
     # @abc.abstractmethod
@@ -84,9 +85,8 @@ class FitLogic(_t.Generic[_T]):
         """
         raise NotImplementedError
 
-    @classmethod
     def fit(
-        cls,
+        self,
         x: _ARRAY,
         data: _ARRAY,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
@@ -121,49 +121,50 @@ class FitLogic(_t.Generic[_T]):
         x, data = np.asarray(x), np.asarray(data)
 
         # Mask the data and check that length of masked data is greater than lens of params
-        x_masked, data_masked = get_masked_data(x, data, mask, param_len(cls.param))
+        x_masked, data_masked = get_masked_data(x, data, mask, param_len(self.param))
         if len(x_masked) == 0 or len(data_masked) == 0:
             return FitResult()
 
         # Get a guess if not provided
         if guess is None:
-            guess = cls._guess(x_masked, data_masked, **kwargs)
+            guess = self._guess(x_masked, data_masked, **kwargs)
 
         guess = tuple(guess)  # type: ignore
         # Fit the data
-        res, cov = cls._fit(x_masked, data_masked, guess, method)
+        res, cov = self._fit(x_masked, data_masked, guess, method)
 
         # Normalize the result if necessary. Like some periodicity that should not be important
-        if cls.normalize_res is not None:  # type: ignore
-            res = cls.normalize_res(res)  # type: ignore
+        if self.normalize_res is not None:  # type: ignore
+            res = self.normalize_res(res)  # type: ignore
 
         # Convert the result to a parameter object (NamedTuple)
-        param = cls.param(*res)
+        param = self.param(*res)
 
-        return FitResult(param, lambda x: cls.func(x, *res), x=x, data=data, cov=cov)
+        full_func = getattr(self, "full_func", self.__class__().func)
 
-    @classmethod
+        print(res)
+        return FitResult(param, lambda x: full_func(x, *res), x=x, data=data, cov=cov)
+
     async def async_fit(
-        cls,
+        self,
         x: _ARRAY,
         data: _ARRAY,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_T] = None,
         **kwargs,
     ) -> FitResult[_T]:
-        return cls.fit(x, data, mask, guess, **kwargs)
+        return self.fit(x, data, mask, guess, **kwargs)
 
-    @classmethod
     async def async_array_fit(
-        cls,
+        self,
         x: _ARRAY,
-        data: _ARRAY,
+        data: _2DARRAY,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_T] = None,
         **kwargs,
     ) -> FitArrayResult[_T]:
         tasks = [
-            cls.async_fit(x, data[i], mask=mask, guess=guess, **kwargs)
+            self.async_fit(x, data[i], mask=mask, guess=guess, **kwargs)
             for i in range(len(data))
         ]
         results = await asyncio.gather(*tasks)
@@ -173,9 +174,8 @@ class FitLogic(_t.Generic[_T]):
 
         return FitArrayResult(results, func)
 
-    @classmethod
     def array_fit(
-        cls,
+        self,
         x: _ARRAY,
         data: _ARRAY,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
@@ -292,9 +292,8 @@ class FitLogic(_t.Generic[_T]):
     #     del kwargs
     #     return np.sum(np.abs(func(x) - y) ** 2) / len(x)
 
-    @classmethod
     def bootstrapping(
-        cls,
+        self,
         x: _ARRAY,
         data: _ARRAY,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
@@ -333,16 +332,16 @@ class FitLogic(_t.Generic[_T]):
         mask = get_mask(mask, x)
 
         # Mask the data and check that length of masked data is greater than lens of params
-        x_masked, data_masked = get_masked_data(x, data, mask, param_len(cls.param))
+        x_masked, data_masked = get_masked_data(x, data, mask, param_len(self.param))
         if len(x_masked) == 0 or len(data_masked) == 0:
             return FitWithErrorResult()
 
         # Get a guess if not provided
         if guess is None:
-            guess = cls._guess(x_masked, data_masked, **kwargs)
+            guess = self._guess(x_masked, data_masked, **kwargs)
 
         # Fit ones to get the best initial guess
-        guess, _ = cls._fit(x_masked, data_masked, guess, method)
+        guess, _ = self._fit(x_masked, data_masked, guess, method)
 
         # Set sampling length if not provided
         sampling_len = (
@@ -356,34 +355,35 @@ class FitLogic(_t.Generic[_T]):
         for xx, yy in get_random_subarrays(
             x_masked, data_masked, sampling_len, sampling_portion
         ):
-            res, cov = cls._fit(xx, yy, guess, method)
-            if cls.normalize_res is not None:  # type: ignore
-                res = cls.normalize_res(res)  # type: ignore
+            res, cov = self._fit(xx, yy, guess, method)
+            if self.normalize_res is not None:  # type: ignore
+                res = self.normalize_res(res)  # type: ignore
             all_res.append(res)
 
         res_means = np.mean(all_res, axis=0)
         res_std = np.std(all_res, axis=0)
 
         # Convert the result to a parameter object (NamedTuple)
-        param_std = cls.param(*res_std)
-        param = cls.param(*res_means, std=param_std)
+        param_std = self.param(*res_std)
+        param = self.param(*res_means, std=param_std)
+
+        full_func = getattr(self, "full_func", self.__class__().func)
 
         return FitWithErrorResult(
             param,
-            lambda x: cls.func(x, *res),
+            lambda x: full_func(x, *res),
             x=x,
             data=data,
             cov=cov,
             stderr=param_std,
-            stdfunc=lambda x: cls.func_std(x, *res_means, *res_std),
+            stdfunc=lambda x: self.func_std(x, *res_means, *res_std),
         )
 
-    @classmethod
-    def _fit(cls, x, y, guess, method: _POSSIBLE_FIT_METHODS):
+    def _fit(self, x, y, guess, method: _POSSIBLE_FIT_METHODS):
         if method in {"least_squares", "leastsq"}:
 
             def to_minimize(args):
-                return np.abs(cls.func(x, *args) - y)
+                return np.abs(self.func(x, *args) - y)
 
             return optimize.leastsq(to_minimize, guess)
         elif method == "curve_fit":
@@ -398,3 +398,40 @@ class FitLogic(_t.Generic[_T]):
             # )
         else:
             raise ValueError(f"Invalid method: {method}")
+
+    @classmethod
+    def mask(cls, **kwargs):
+        instance = cls()
+
+        params_fields = cls.param.fields()  # type: ignore # pylint: disable=no-member
+        # print(params_fields)
+        mask = np.ones(len(params_fields)).astype(bool)
+        mask_values = np.zeros(len(params_fields))
+        for param_name, param_value in kwargs.items():
+            for i, possible_name in enumerate(params_fields):
+                if param_name == possible_name:
+                    mask[i] = False
+                    mask_values[i] = param_value
+
+        default_func = instance.func
+        instance.func = staticmethod(mask_func(default_func, mask, mask_values))
+
+        default_guess = instance._guess
+        instance._guess = staticmethod(mask_func_result(default_guess, mask))
+
+        default_normalize_res = instance.normalize_res  # type: ignore
+        if default_normalize_res is None:
+
+            def default_normalize_res(x):
+                return x
+
+        def masked_normize_res(x):
+            input_full = np.zeros_like(mask).astype(float)
+            input_full[mask] = x
+            input_full[~mask] = mask_values[~mask]
+            res_full = np.array(default_normalize_res(input_full))
+            return res_full
+
+        instance.normalize_res = staticmethod(masked_normize_res)
+
+        return instance

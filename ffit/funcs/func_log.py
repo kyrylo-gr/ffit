@@ -128,5 +128,5 @@ class Log(FitLogic[LogParam]):  # type: ignore
 
     param: _t.Type[LogParam] = LogParam
 
-    func = ln_func
-    _guess = log_guess
+    func = staticmethod(ln_func)
+    _guess = staticmethod(log_guess)
