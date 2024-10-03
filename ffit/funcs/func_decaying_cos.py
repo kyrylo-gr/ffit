@@ -8,27 +8,35 @@ from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 
 @dataclass(frozen=True)
-class CosParam(ParamDataclass):
+class ExpDecayingCosParam(ParamDataclass):
     amplitude: float
     frequency: float
     phi0: float
     offset: float
-    std: "_t.Optional[CosParam]" = None
+    tau: float
+    std: "_t.Optional[ExpDecayingCosParam]" = None
 
 
 def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
     return np.array(
-        [abs(x[0]), x[1], (x[2] + (np.pi if x[0] < 0 else 0)) % (2 * np.pi), x[3]]
+        [abs(x[0]), x[1], (x[2] + (np.pi if x[0] < 0 else 0)) % (2 * np.pi), x[3], x[4]]
     )
 
 
-def cos_func(
-    x: _NDARRAY, amplitude: float, frequency: float, phi0: float, offset: float
+def exp_decaying_cos_func(
+    x: _NDARRAY,
+    amplitude: float,
+    frequency: float,
+    phi0: float,
+    offset: float,
+    tau: float,
 ):
-    return amplitude * np.cos(2 * np.pi * x * frequency + phi0) + offset
+    return (
+        amplitude * np.cos(2 * np.pi * x * frequency + phi0) * np.exp(-x / tau) + offset
+    )
 
 
-def cos_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
+def exp_decaying_cos_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     """Guess the initial parameters for fitting a curve to the given data.
 
     Parameters:
@@ -63,31 +71,32 @@ def cos_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     freq_guess: float = np.abs(fft_freqs[freq_max_index])
     sign_: float = np.sign(np.real(fft_vals[freq_max_index]))  # type: ignore
     phase: float = np.imag(fft_vals[freq_max_index])
+    tau: float = (max(x) - min(x)) / 5
 
     return np.array(
-        normalize_res_list([sign_ * amp_guess, freq_guess, phase, off_guess])
+        normalize_res_list([sign_ * amp_guess, freq_guess, phase, off_guess, tau])
     )
 
 
-class Cos(FitLogic[CosParam]):  # type: ignore
-    r"""Fit Cos function.
+class ExpDecayingCos(FitLogic[ExpDecayingCosParam]):  # type: ignore
+    r"""Fit ExpDecayingCos function.
 
 
     Function
     ---------
 
     $$
-    f(x) = A * cos(2 * pi * \omega* x + \phi_0) + A_0
+    f(x) = A * cos(2 * pi * \omega* x + \phi_0) * np.exp(-x / tau)  + A_0
     $$
 
-        f(x) = amplitude * cos(2 * pi * frequency * x + phi0) + offset
+        f(x) = amplitude * cos(2 * pi * frequency * x + phi0) * np.exp(-x / tau) + offset
 
     Example
     ---------
         >>> import ffit as ff
-        >>> res = ff.Cos.fit(x, y).res
+        >>> res = ff.ExpDecayingCos().fit(x, y).res
 
-        >>> res = ff.Cos.fit(x, y, guess=[1, 2, 3, 4]).plot(ax).res
+        >>> res = ff.ExpDecayingCos().fit(x, y, guess=[1, 2, 3, 4]).plot(ax).res
         >>> amplitude = res.amplitude
 
     Final parameters
@@ -100,15 +109,17 @@ class Cos(FitLogic[CosParam]):  # type: ignore
         The phase inside cos.
     - `offset`: float.
         The global offset.
+    - `tau`: float.
+        The exponential decay constant.
 
     """
 
-    param: _t.Type[CosParam] = CosParam
-    func = staticmethod(cos_func)
+    param: _t.Type[ExpDecayingCosParam] = ExpDecayingCosParam
+    func = staticmethod(exp_decaying_cos_func)
     # func_std = staticmethod(cos_error)
 
     normalize_res = staticmethod(normalize_res_list)
-    _guess = staticmethod(cos_guess)
+    _guess = staticmethod(exp_decaying_cos_guess)
 
     @_t.overload
     @classmethod
@@ -119,8 +130,9 @@ class Cos(FitLogic[CosParam]):  # type: ignore
         frequency: float = None,  # type: ignore
         phi0: float = None,  # type: ignore
         offset: float = None,  # type: ignore
-    ) -> "Cos": ...
+        tau: float = None,  # type: ignore
+    ) -> "ExpDecayingCos": ...
 
     @classmethod
-    def mask(cls, **kwargs) -> "Cos":
+    def mask(cls, **kwargs) -> "ExpDecayingCos":
         return super().mask(**kwargs)

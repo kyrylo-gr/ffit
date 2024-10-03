@@ -1,6 +1,4 @@
 import abc
-
-# import numpy as np
 import asyncio
 import typing as _t
 
@@ -18,6 +16,7 @@ from .utils import (
     mask_func,
     mask_func_result,
     param_len,
+    std_monte_carlo,
 )
 
 _T = _t.TypeVar("_T", bound=_t.Sequence)
@@ -63,16 +62,22 @@ class FitLogic(_t.Generic[_T]):
     normalize_res: _t.Optional[_t.Callable[[_t.Sequence[float]], _NDARRAY]] = None
     jac: _t.Optional[_t.Callable[..., _NDARRAY]] = None
 
-    # @abc.abstractmethod
-    # @staticmethod
-    # def func(x, *args, **kwargs):
-    #     """Abstract method for the fitting function.
+    def get_func_std(self):
+        return getattr(self, "func_std", self.default_func_std)
 
-    #     Parameters:
-    #     - x: The independent variable.
-    #     - args: Positional arguments.
-    #     - kwargs: Keyword arguments.
-    #     """
+    def default_func_std(
+        self,
+        x: _NDARRAY,
+        *args,
+        n_simulations: int = 10_000,
+    ):
+        half_index = len(args) // 2
+        mean_args = args[:half_index]
+        std_args = args[half_index:]
+
+        return std_monte_carlo(
+            x, self.func, mean_args, std_args, n_simulations=n_simulations
+        )
 
     @staticmethod
     def _guess(x, y, **kwargs):
@@ -93,7 +98,7 @@ class FitLogic(_t.Generic[_T]):
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         **kwargs,
-    ) -> FitResult[_T]:  # Tuple[_T, _t.Callable, _NDARRAY]:
+    ) -> FitWithErrorResult[_T]:  # Tuple[_T, _t.Callable, _NDARRAY]:
         """
         Fit the data using the specified fitting function.
 
@@ -123,7 +128,7 @@ class FitLogic(_t.Generic[_T]):
         # Mask the data and check that length of masked data is greater than lens of params
         x_masked, data_masked = get_masked_data(x, data, mask, param_len(self.param))
         if len(x_masked) == 0 or len(data_masked) == 0:
-            return FitResult()
+            return FitWithErrorResult()
 
         # Get a guess if not provided
         if guess is None:
@@ -138,12 +143,26 @@ class FitLogic(_t.Generic[_T]):
             res = self.normalize_res(res)  # type: ignore
 
         # Convert the result to a parameter object (NamedTuple)
-        param = self.param(*res)
+        # print(cov)
+        if cov is not None:
+            stds = np.diag(cov)
+            param_std = self.param(*stds)
+        else:
+            param_std = None
+        param = self.param(*res, std=param_std)
 
         full_func = getattr(self, "full_func", self.__class__().func)
 
-        print(res)
-        return FitResult(param, lambda x: full_func(x, *res), x=x, data=data, cov=cov)
+        # print(res)
+        return FitWithErrorResult(
+            param,
+            lambda x: full_func(x, *res),
+            x=x,
+            data=data,
+            cov=cov,
+            stderr=param_std,
+            stdfunc=lambda x: self.get_func_std()(x, *res, *stds),
+        )
 
     async def async_fit(
         self,
@@ -152,7 +171,7 @@ class FitLogic(_t.Generic[_T]):
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_T] = None,
         **kwargs,
-    ) -> FitResult[_T]:
+    ) -> FitWithErrorResult[_T]:
         return self.fit(x, data, mask, guess, **kwargs)
 
     async def async_array_fit(
@@ -172,7 +191,7 @@ class FitLogic(_t.Generic[_T]):
         def func(y):
             return np.array([res.res_func(y) for res in results])
 
-        return FitArrayResult(results, func)
+        return FitArrayResult(results, func)  # type: ignore
 
     def array_fit(
         self,
@@ -341,7 +360,7 @@ class FitLogic(_t.Generic[_T]):
             guess = self._guess(x_masked, data_masked, **kwargs)
 
         # Fit ones to get the best initial guess
-        guess, _ = self._fit(x_masked, data_masked, guess, method)
+        guess, cov = self._fit(x_masked, data_masked, guess, method)
 
         # Set sampling length if not provided
         sampling_len = (
@@ -355,16 +374,18 @@ class FitLogic(_t.Generic[_T]):
         for xx, yy in get_random_subarrays(
             x_masked, data_masked, sampling_len, sampling_portion
         ):
-            res, cov = self._fit(xx, yy, guess, method)
+            res, _ = self._fit(xx, yy, guess, method)
             if self.normalize_res is not None:  # type: ignore
                 res = self.normalize_res(res)  # type: ignore
             all_res.append(res)
 
         res_means = np.mean(all_res, axis=0)
-        res_std = np.std(all_res, axis=0)
+        bootstrap_std = np.std(all_res, axis=0)
+        # print(cov)
+        total_std = np.sqrt(np.diag(cov))  # + bootstrap_std**2)
 
         # Convert the result to a parameter object (NamedTuple)
-        param_std = self.param(*res_std)
+        param_std = self.param(*total_std)
         param = self.param(*res_means, std=param_std)
 
         full_func = getattr(self, "full_func", self.__class__().func)
@@ -376,7 +397,7 @@ class FitLogic(_t.Generic[_T]):
             data=data,
             cov=cov,
             stderr=param_std,
-            stdfunc=lambda x: self.func_std(x, *res_means, *res_std),
+            stdfunc=lambda x: self.get_func_std()(x, *res_means, *total_std),
         )
 
     def _fit(self, x, y, guess, method: _POSSIBLE_FIT_METHODS):
@@ -385,7 +406,12 @@ class FitLogic(_t.Generic[_T]):
             def to_minimize(args):
                 return np.abs(self.func(x, *args) - y)
 
-            return optimize.leastsq(to_minimize, guess)
+            # opt, cov, infodict, msg, ier
+            opt, cov, infodict, _, _ = optimize.leastsq(  # type: ignore
+                to_minimize, guess, full_output=True
+            )
+
+            return opt, cov
         elif method == "curve_fit":
             raise ValueError(f"Invalid method: {method}")
 

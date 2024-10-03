@@ -8,7 +8,7 @@ from .__config__ import __version__
 from .backends import SCIPY as DEFAULT_BACKEND
 from .backends import BackendProtocol, Backends, get_backend
 from .fit_logic import FitArrayResult, FitLogic, FitResult
-from .front import curve_fit, leastsq
+from .front import async_curve_fit, async_curve_fit_array, curve_fit, leastsq
 from .funcs import *
 
 
