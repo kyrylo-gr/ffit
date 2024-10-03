@@ -382,7 +382,7 @@ class FitLogic(_t.Generic[_T]):
         res_means = np.mean(all_res, axis=0)
         bootstrap_std = np.std(all_res, axis=0)
         # print(cov)
-        total_std = np.sqrt(np.diag(cov))  # + bootstrap_std**2)
+        total_std = np.sqrt(np.diag(cov) + bootstrap_std**2)
 
         # Convert the result to a parameter object (NamedTuple)
         param_std = self.param(*total_std)
