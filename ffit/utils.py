@@ -250,10 +250,11 @@ class ParamDataclass:
 
 def mask_func(func, mask, mask_values):
     def masked_func(x, *args):
+        if len(mask) == len(args):
+            args = np.array(args)[mask]
         params_full = np.zeros_like(mask).astype(float)
         params_full[mask] = args
         params_full[~mask] = mask_values[~mask]
-        # print(params_full)
         return func(x, *params_full)
 
     return masked_func

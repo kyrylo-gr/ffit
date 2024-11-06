@@ -149,9 +149,11 @@ class FitResult(_t.Tuple[_t.Optional[_R], _t.Callable]):
         ax: _t.Optional["Axes"] = None,
         *,
         x: _t.Optional[_t.Union[_NDARRAY, int]] = None,
-        label: str = DEFAULT_FIT_LABEL,
+        label: _t.Optional[str] = DEFAULT_FIT_LABEL,
         color: _t.Optional[_t.Union[str, int]] = None,
         title: _t.Optional[str] = None,
+        post_func_x: _t.Optional[_t.Callable[[_NDARRAY], _NDARRAY]] = None,
+        post_func_y: _t.Optional[_t.Callable[[_NDARRAY], _NDARRAY]] = None,
         **kwargs,
     ):
         """Plot the fit results on the given axes.
@@ -181,12 +183,18 @@ class FitResult(_t.Tuple[_t.Optional[_R], _t.Callable]):
         x_fit = get_right_x(x, ax, self.x)
 
         y_fit = self.res_func(x_fit)
-
-        label = format_str_with_params(self.res, label)
+        if label is not None:
+            label = format_str_with_params(self.res, label)
+            kwargs.update({"label": label})
 
         color = get_right_color(color)
+        kwargs.update({"color": color})
 
-        ax.plot(x_fit, y_fit, label=label, color=color, **kwargs)
+        if post_func_x:
+            x_fit = post_func_x(x_fit)
+        if post_func_y:
+            y_fit = post_func_y(y_fit)
+        ax.plot(x_fit, y_fit, **kwargs)
 
         if title:
             title = format_str_with_params(self.res, title)
@@ -195,7 +203,7 @@ class FitResult(_t.Tuple[_t.Optional[_R], _t.Callable]):
                 title = f"{current_title}\n{title}"
             ax.set_title(title)
 
-        if label != DEFAULT_FIT_LABEL:
+        if label != DEFAULT_FIT_LABEL and label is not None:
             ax.legend()
 
         return self

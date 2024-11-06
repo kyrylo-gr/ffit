@@ -146,6 +146,8 @@ class FitLogic(_t.Generic[_T]):
         # print(cov)
         if cov is not None:
             stds = np.diag(cov)
+            if self.normalize_res is not None:  # type: ignore
+                stds = self.normalize_res(stds)  # type: ignore
             param_std = self.param(*stds)
         else:
             param_std = None
@@ -382,7 +384,9 @@ class FitLogic(_t.Generic[_T]):
         res_means = np.mean(all_res, axis=0)
         bootstrap_std = np.std(all_res, axis=0)
         # print(cov)
-        total_std = np.sqrt(np.diag(cov) + bootstrap_std**2)
+        # total_std = np.sqrt(np.diag(cov) + bootstrap_std**2)
+        total_std = bootstrap_std
+        # print(res_means, total_std)
 
         # Convert the result to a parameter object (NamedTuple)
         param_std = self.param(*total_std)
@@ -400,7 +404,7 @@ class FitLogic(_t.Generic[_T]):
             stdfunc=lambda x: self.get_func_std()(x, *res_means, *total_std),
         )
 
-    def _fit(self, x, y, guess, method: _POSSIBLE_FIT_METHODS):
+    def _fit(self, x, y, guess, method: _POSSIBLE_FIT_METHODS, maxfev: int = 10000):
         if method in {"least_squares", "leastsq"}:
 
             def to_minimize(args):
@@ -408,7 +412,7 @@ class FitLogic(_t.Generic[_T]):
 
             # opt, cov, infodict, msg, ier
             opt, cov, infodict, _, _ = optimize.leastsq(  # type: ignore
-                to_minimize, guess, full_output=True
+                to_minimize, guess, full_output=True, maxfev=maxfev
             )
 
             return opt, cov
@@ -438,6 +442,7 @@ class FitLogic(_t.Generic[_T]):
                 if param_name == possible_name:
                     mask[i] = False
                     mask_values[i] = param_value
+        # transparent_mask = len(mask) == np.count_nonzero(mask)
 
         default_func = instance.func
         instance.func = staticmethod(mask_func(default_func, mask, mask_values))
@@ -452,6 +457,9 @@ class FitLogic(_t.Generic[_T]):
                 return x
 
         def masked_normize_res(x):
+            # print(mask, np.count_nonzero(mask), x)
+            if len(mask) == len(x):
+                x = np.array(x)[mask]
             input_full = np.zeros_like(mask).astype(float)
             input_full[mask] = x
             input_full[~mask] = mask_values[~mask]

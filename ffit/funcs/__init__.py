@@ -6,6 +6,7 @@ from ..fit_logic import FitLogic
 from .complex_spiral import ComplexSpiral, ComplexSpiralParam
 from .func_cos import Cos, CosParam
 from .func_exp import Exp, ExpParam
+from .func_gaussian import Gaussian, GaussianParam
 from .func_hyperbola import Hyperbola, HyperbolaParam
 from .func_line import Line, LineParam
 from .func_log import Log, LogParam
