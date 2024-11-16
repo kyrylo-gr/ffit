@@ -67,6 +67,8 @@ python create_functions_doc.py
 
 ## Submit Changes
 
+- **Update the version**
+  The version of the package should be increased by 0.0.1 for each new feature or bugfix. It's saved in the `ffit/__config__.py` file.
 - **Commit Changes**  
    Commit your changes with a clear and concise message:
 
