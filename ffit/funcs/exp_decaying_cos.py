@@ -9,12 +9,47 @@ from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 @dataclass(frozen=True)
 class ExpDecayingCosParam(ParamDataclass):
-    amplitude: float
+    """Exponential Decaying Cosine parameters.
+
+    Attributes:
+        amplitude0 (float):
+            The absolute amplitude of the decaying cosine.
+        frequency (float):
+            The frequency of the decaying cosine.
+        phi0 (float):
+            The initial phase of the decaying cosine.
+        offset (float):
+            The offset of the decaying cosine.
+        tau (float):
+            The decay constant of the decaying cosine.
+        std (Optional[ExpDecayingCosParam]):
+            The standard deviation of the parameters, if any.
+
+    Additional attributes:
+        omega (float):
+            Calculates the angular frequency based on the frequency.
+        rate (float):
+            Calculates the rate of decay.
+    """
+
+    amplitude0: float
     frequency: float
     phi0: float
     offset: float
     tau: float
     std: "_t.Optional[ExpDecayingCosParam]" = None
+
+    @property
+    def omega(self):
+        return 2 * np.pi * self.frequency
+
+    @property
+    def rate(self):
+        return -1 / self.tau
+
+    # @property
+    # def amplitude(self):
+    #     return self.amplitude0 * np.exp(1j * self.phi0)
 
 
 def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
@@ -25,14 +60,15 @@ def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
 
 def exp_decaying_cos_func(
     x: _NDARRAY,
-    amplitude: float,
+    amplitude0: float,
     frequency: float,
     phi0: float,
     offset: float,
     tau: float,
 ):
     return (
-        amplitude * np.cos(2 * np.pi * x * frequency + phi0) * np.exp(-x / tau) + offset
+        amplitude0 * np.cos(2 * np.pi * x * frequency + phi0) * np.exp(-x / tau)
+        + offset
     )
 
 
@@ -52,7 +88,7 @@ def exp_decaying_cos_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
         A list containing the initial parameter guesses for fitting the curve.
         The list contains the following elements:
         - sign_ * amp_guess: float
-            The amplitude guess for the curve.
+            The amplitude0 guess for the curve.
         - period: float
             The period guess for the curve.
         - off_guess: float
@@ -82,35 +118,23 @@ class ExpDecayingCos(FitLogic[ExpDecayingCosParam]):  # type: ignore
     r"""Fit ExpDecayingCos function.
 
 
-    Function
-    ---------
+     Function
+     ---------
 
-    $$
-    f(x) = A * cos(2 * pi * \omega* x + \phi_0) * np.exp(-x / tau)  + A_0
-    $$
+     $$
+     f(x) = A_0 * \cos(ω⋅x + \phi_0) * \exp(-x / τ) + A_{\text{offset}}
+     $$
 
-        f(x) = amplitude * cos(2 * pi * frequency * x + phi0) * np.exp(-x / tau) + offset
+         f(x) = (
+             amplitude0 * np.exp(-x / tau)
+             * np.cos(2 * np.pi * x * frequency + phi0)
+             + offset
+         )
 
-    Example
-    ---------
-        >>> import ffit as ff
-        >>> res = ff.ExpDecayingCos().fit(x, y).res
 
-        >>> res = ff.ExpDecayingCos().fit(x, y, guess=[1, 2, 3, 4]).plot(ax).res
-        >>> amplitude = res.amplitude
-
-    Final parameters
+     Final parameters
     -----------------
-    - `amplitude`: float.
-        The amplitude.
-    - `frequency`: float.
-        The frequency in 1/[x] units.
-    - `phi0`: float.
-        The phase inside cos.
-    - `offset`: float.
-        The global offset.
-    - `tau`: float.
-        The exponential decay constant.
+     The final parameters are given by [`ExpDecayingCosParam`](../exp_decaying_cos_param/) dataclass.
 
     """
 
@@ -126,7 +150,7 @@ class ExpDecayingCos(FitLogic[ExpDecayingCosParam]):  # type: ignore
     def mask(  # type: ignore # pylint: disable=W0221
         cls,
         *,
-        amplitude: float = None,  # type: ignore
+        amplitude0: float = None,  # type: ignore
         frequency: float = None,  # type: ignore
         phi0: float = None,  # type: ignore
         offset: float = None,  # type: ignore
@@ -136,3 +160,5 @@ class ExpDecayingCos(FitLogic[ExpDecayingCosParam]):  # type: ignore
     @classmethod
     def mask(cls, **kwargs) -> "ExpDecayingCos":
         return super().mask(**kwargs)
+
+    _range_x = (0, np.inf)

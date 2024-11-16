@@ -9,6 +9,22 @@ from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 @dataclass(frozen=True)
 class GaussianParam(ParamDataclass):
+    """Gaussian parameters.
+
+    Attributes:
+    -----------------
+        mu (float):
+            The  Gaussian peak.
+        sigma (float):
+            The sqrt of the standard deviation.
+        amplitude (float):
+            Teh normalization factor.
+        offset (float):
+            The baseline offset from zero.
+
+    Attention to not use `std` as it is reserved for standard deviation of the parameters.
+    """
+
     mu: float
     sigma: float
     amplitude: float
@@ -31,17 +47,15 @@ def gaussian_guess(x, y, **kwargs):
     if not check_min_len(x, y, 3):
         return np.ones(4)
 
-    mu = np.mean(x)
+    sorted_indices = np.argsort(y)[::-1]
+    mu = np.array(x)[sorted_indices][: min(max(len(x) // 10, 100), 1)].mean()
+
+    # mu = np.mean(x)
     sigma = np.std(x) / 3
     amplitude = (np.max(y) - np.min(y)) * sigma * np.sqrt(2 * np.pi)
     offset = np.mean(y)
 
-    return GaussianParam(
-        mu=mu,
-        sigma=sigma,  # type: ignore
-        amplitude=amplitude,
-        offset=offset,
-    )
+    return np.array([mu, sigma, amplitude, offset])
 
 
 def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
@@ -49,14 +63,11 @@ def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
 
 
 class Gaussian(FitLogic[GaussianParam]):  # type: ignore
-    r"""Fit Hyperbola function.
-
-
-    Function
+    r"""Gaussian function.
     ---------
 
     $$
-    a \cdot \frac{1}{\sqrt{2\pi}\sigma} \cdot \exp\left(-\frac{(x - \mu)^2}{2\sigma^2}\right) + b
+    a \cdot \frac{A}{\sqrt{2\pi}\sigma} \cdot \exp\left(-\frac{(x - \mu)^2}{2\sigma^2}\right) + b
     $$
 
         f(x) = (
@@ -77,10 +88,7 @@ class Gaussian(FitLogic[GaussianParam]):  # type: ignore
 
     Final parameters
     -----------------
-    - `mu`: float.
-    - `sigma`: float.
-    - `amplitude`: float.
-    - `offset`: float.
+    The final parameters are given by [`GaussianParam`](../gaussian_param/) dataclass.
     """
 
     param: _t.Type[GaussianParam] = GaussianParam
@@ -88,3 +96,5 @@ class Gaussian(FitLogic[GaussianParam]):  # type: ignore
     func = staticmethod(gaussian_func)
     _guess = staticmethod(gaussian_guess)
     normalize_res = staticmethod(normalize_res_list)
+
+    _example_param = (0.2, 0.2, 0.2, 0.2)

@@ -64,25 +64,25 @@ class FitResult(_t.Tuple[_t.Optional[_R], _t.Callable]):
     Examples
     --------
         >>> import ffit as ff
-        >>> result = ff.Cos.fit(x, y)
+        >>> result = ff.Cos().fit(x, y)
         >>> result.res.amplitude # to get the amplitude
         >>> result.res # to get whole result as a NamedTuple
         >>> y0 = result.res_func(x0) # to get the fitted values
         >>> result.plot() # to plot the fit results
 
         All in one:
-        >>> amp = ff.Cos.fit(x, y).plot().res.amplitude
+        >>> amp = ff.Cos().fit(x, y).plot().res.amplitude
 
     Unpack the FitResult
     ----------------------
     The FitResult is based on a tuple with two elements to have right type hints.
     You can unpack the FitResult like this:
 
-        >>> res, res_func = ff.Cos.fit(x, y)
+        >>> res, res_func = ff.Cos().fit(x, y)
 
     You can also unpack it after using some methods:
 
-        >>> res, res_func = ff.Cos.fit(x, y).plot(ax, x=x, label="Cosine fit")
+        >>> res, res_func = ff.Cos().fit(x, y).plot(ax, x=x, label="Cosine fit")
 
     Remember: fit method always returns FitResult that can be unpacked.
     In case the fit fails, the FitResult will have `res=None, res_func=lambda x: [np.nan] * len(x)`.
@@ -170,7 +170,7 @@ class FitResult(_t.Tuple[_t.Optional[_R], _t.Callable]):
 
         Example:
             ```
-            >>> result = ff.Cos.fit(x, y)
+            >>> result = ff.Cos().fit(x, y)
             >>> result.plot() # ax will be get from plt.gca()
             >>> result.plot(ax, x=x, label="Cosine fit")
             >>> result.plot(ax, x=x, label="Cosine fit", color="r")
@@ -386,7 +386,7 @@ class FitWithErrorResult(FitResult[_R]):
 
         Example:
             ```
-            >>> result = ff.Cos.fit(x, y)
+            >>> result = ff.Cos().fit(x, y)
             >>> result.plot() # ax will be get from plt.gca()
             >>> result.plot(ax, x=x, label="Cosine fit")
             >>> result.plot(ax, x=x, label="Cosine fit", color="r")

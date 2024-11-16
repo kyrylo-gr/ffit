@@ -9,6 +9,21 @@ from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 @dataclass(frozen=True)
 class HyperbolaParam(ParamDataclass):
+    """Hyperbola parameters.
+
+    Attributes:
+        semix (float):
+            The semi-major axis length of the hyperbola.
+        semiy (float):
+            The semi-minor axis length of the hyperbola.
+        x0 (float):
+            The x-coordinate of the hyperbola's center.
+        y0 (float):
+            The y-coordinate of the hyperbola's center.
+        std (Optional[HyperbolaParam]):
+            The standard deviation of the hyperbola parameters.
+    """
+
     semix: float
     semiy: float
     x0: float
@@ -38,12 +53,7 @@ def hyperbola_guess(x, y, **kwargs):
     x0 = x[np.argmax(y)] if direction > 0 else x[np.argmin(y)]
     y0 = np.max(y) if direction > 0 else np.min(y)
 
-    return HyperbolaParam(
-        semix=np.std(x),  # type: ignore
-        semiy=-np.std(y) * direction,  # type: ignore
-        x0=x0,
-        y0=y0,  # np.mean(y),
-    )
+    return np.array([np.std(x), -np.std(y) * direction, x0, y0])
 
 
 def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
@@ -51,10 +61,7 @@ def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
 
 
 class Hyperbola(FitLogic[HyperbolaParam]):  # type: ignore
-    r"""Fit Hyperbola function.
-
-
-    Function
+    r"""Hyperbola function.
     ---------
 
     $$
@@ -63,24 +70,10 @@ class Hyperbola(FitLogic[HyperbolaParam]):  # type: ignore
 
         f(x) = y0 + semiy * np.sqrt(1 + ((x - x0) / semix) ** 2)
 
-    Example
-    -------
-        >>> import ffit as ff
-        >>> res = ff.Hyperbola.fit(x, y).res
-
-        >>> res = ff.Hyperbola.fit(x, y, guess=[1, 2, 3, 4]).plot(ax).res
-        >>> semix = res.semix
-
     Final parameters
     -----------------
-    - `semix`: float.
-        The semi-x axis of the hyperbola.
-    - `semiy`: float.
-        The semi-y axis of the hyperbola.
-    - `x0`: float.
-        The origin of the x.
-    - `y0`: float.
-        The origin of the y.
+    The final parameters are given by [`HyperbolaParam`](../hyperbola_param/) dataclass.
+
     """
 
     param: _t.Type[HyperbolaParam] = HyperbolaParam
@@ -88,3 +81,7 @@ class Hyperbola(FitLogic[HyperbolaParam]):  # type: ignore
     func = staticmethod(hyperbola_func)
     _guess = staticmethod(hyperbola_guess)
     normalize_res = staticmethod(normalize_res_list)
+
+    _example_param = (1, 2, 0, 0.5)
+    _example_x_min = -5
+    _example_x_max = 5

@@ -10,7 +10,7 @@ class FuncTestingProtocol(unittest.TestCase):
     error: float = 0.05
 
     def prepare_xy(
-        self, params: tuple, x: np.ndarray | None | int = None
+        self, params: tuple, x: "np.ndarray | None | int" = None
     ) -> tuple[np.ndarray, np.ndarray]:
         if x is None:
             x = 100

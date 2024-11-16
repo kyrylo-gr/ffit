@@ -47,7 +47,8 @@ class FitLogic(_t.Generic[_T]):
     param: abc.ABCMeta
 
     def __init__(self, *args, **kwargs):
-        """Initialize the FitLogic instance.
+        """
+        Initialize the FitLogic instance.
 
         Parameters:
         - args: Positional arguments.
@@ -61,6 +62,20 @@ class FitLogic(_t.Generic[_T]):
     func_std: _t.Callable[..., _NDARRAY]
     normalize_res: _t.Optional[_t.Callable[[_t.Sequence[float]], _NDARRAY]] = None
     jac: _t.Optional[_t.Callable[..., _NDARRAY]] = None
+
+    # Parameters to generate example figure for the documentation
+    _example_param: tuple
+    _example_x_min: float
+    _example_x_max: float
+    _example_x_points: int
+    _example_std: float
+
+    # Parameters for the tests:
+    _range_x: _t.Tuple[float, float]
+
+    # Additional attributes:
+    _test_ignore: bool  # Ignore generic tests
+    _doc_ignore: bool  # Ignore automatic documentation generation
 
     def get_func_std(self):
         return getattr(self, "func_std", self.default_func_std)
@@ -97,6 +112,7 @@ class FitLogic(_t.Generic[_T]):
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
+        maxfev: int = 10000,
         **kwargs,
     ) -> FitWithErrorResult[_T]:  # Tuple[_T, _t.Callable, _NDARRAY]:
         """
@@ -136,7 +152,7 @@ class FitLogic(_t.Generic[_T]):
 
         guess = tuple(guess)  # type: ignore
         # Fit the data
-        res, cov = self._fit(x_masked, data_masked, guess, method)
+        res, cov = self._fit(x_masked, data_masked, guess, method, maxfev=maxfev)
 
         # Normalize the result if necessary. Like some periodicity that should not be important
         if self.normalize_res is not None:  # type: ignore
@@ -174,6 +190,20 @@ class FitLogic(_t.Generic[_T]):
         guess: _t.Optional[_T] = None,
         **kwargs,
     ) -> FitWithErrorResult[_T]:
+        """
+        Asynchronously fits the model to the provided data.
+
+        Args:
+            x (_ARRAY): The independent variable data.
+            data (_ARRAY): The dependent variable data to fit.
+            mask (Optional[Union[_ARRAY, float]], optional): An optional mask to apply to the data. Defaults to None.
+            guess (Optional[_T], optional): An optional initial guess for the fitting parameters. Defaults to None.
+            **kwargs: Additional keyword arguments to pass to the fitting function.
+
+        Returns:
+            FitWithErrorResult[_T]:
+                The result of the fitting process, including the fitted parameters and associated errors.
+        """
         return self.fit(x, data, mask, guess, **kwargs)
 
     async def async_array_fit(
@@ -198,15 +228,13 @@ class FitLogic(_t.Generic[_T]):
     def array_fit(
         self,
         x: _ARRAY,
-        data: _ARRAY,
+        data: _2DARRAY,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_T] = None,
         **kwargs,
     ) -> FitArrayResult[_T]:
         async def func():
-            await asyncio.sleep(1)
-            return None
-            # return await cls.async_array_fit(x, data, mask, guess, **kwargs)
+            return await self.async_array_fit(x, data, mask, guess, **kwargs)
 
         try:
             return asyncio.run(func())  # type: ignore
