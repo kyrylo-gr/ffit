@@ -5,9 +5,10 @@
 The basic motivation can be divided into two parts:
 
 - First, the current process of fitting with `scipy.optimize.curve_fit` is too lengthy and writing-code-consuming, while it should be straightforward.
-- Second, with new technology like JAX, we can accelerate matrix multiplication, thus probably making the entire algorithm faster.
+- Second, with new technology like `JAX` for python; `ocl` or `wgpu` for `rust`, we can accelerate matrix multiplication, thus probably making the entire algorithm faster.
 
-The first problem can be easily solved with a few hundred lines of code. Therefore, this overview will primarily focus on the second problem: How can we speed up the algorithm?
+The first problem can be easily solved with a few hundred lines of code.
+Therefore, this overview will primarily focus on the second problem: How can we speed up the algorithm?
 
 Spoiler alert: there's a possible potential to speed up the runtime. However, due to my time constraints or impossibility, it hasn't been completed yet.
 

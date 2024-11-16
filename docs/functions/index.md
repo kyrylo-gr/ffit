@@ -1,27 +1,40 @@
 # Implemented functions
 
-Here is a list of the all implemented functions:
+Here is a list of the all implemented functions sorted alphabetically.
 
-## [Cosine](cos.md)
+## [ComplexSpiral](complex_spiral.md)
 
-[![cos_example](cos_example.png)](cos.md)
+[![complex_spiral](complex_spiral_example.png)](complex_spiral.md)
 
-## [Hyperbola](hyperbola.md)
+## [Cos](cos.md)
 
-[![Hyperbola example](hyperbola_example.png)](hyperbola.md)
-
-## [Lorentzian](lorentzian.md)
-
-[![Lorentzian example](lorentzian_example.png)](lorentzian.md)
+[![cos](cos_example.png)](cos.md)
 
 ## [Exp](exp.md)
 
-[![Exp example](exp_example.png)](exp.md)
+[![exp](exp_example.png)](exp.md)
+
+## [ExpDecayingCos](exp_decaying_cos.md)
+
+[![exp_decaying_cos](exp_decaying_cos_example.png)](exp_decaying_cos.md)
+
+## [Gaussian](gaussian.md)
+
+[![gaussian](gaussian_example.png)](gaussian.md)
+
+## [Hyperbola](hyperbola.md)
+
+[![hyperbola](hyperbola_example.png)](hyperbola.md)
 
 ## [Line](line.md)
 
-[![Line example](line_example.png)](line.md)
+[![line](line_example.png)](line.md)
 
 ## [Log](log.md)
 
-[![Log example](log_example.png)](log.md)
+[![log](log_example.png)](log.md)
+
+## [Lorentzian](lorentzian.md)
+
+[![lorentzian](lorentzian_example.png)](lorentzian.md)
+

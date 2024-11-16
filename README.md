@@ -33,7 +33,7 @@ import ffit as ff
 x = np.linspace(1, 10, 100)
 y = 2 * np.sin(x) + 3
 
-res = ff.Cos.fit(x, y).res
+res = ff.Cos().fit(x, y).res
 
 ```
 
@@ -48,7 +48,7 @@ y = 2 * np.sin(x) + 3
 
 plt.plot(x, y, '.')
 
-res = ff.Cos.fit(x, y).plot().res
+res = ff.Cos().fit(x, y).plot().res
 ```
 
 ### Plotting guess
@@ -56,11 +56,11 @@ res = ff.Cos.fit(x, y).plot().res
 The quality of fitting is heavily dependent on the initial guess. This library provides initial guesses for various popular functions to ensure effectiveness. However, if something goes awry, you can verify the guess and set it manually.
 
 ```
-ff.Cos.guess(x, y).plot()
+ff.Cos().guess(x, y).plot()
 
-ff.Cos.guess(x, y, guess=[1,2,3,4]).plot()
+ff.Cos().guess(x, y, guess=[1,2,3,4]).plot()
 
-ff.Cos.fit(x, y, guess=[1,2,3,4]).plot()
+ff.Cos().fit(x, y, guess=[1,2,3,4]).plot()
 ```
 
 ### Other functions

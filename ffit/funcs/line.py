@@ -9,6 +9,13 @@ from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 @dataclass(frozen=True)
 class LineParam(ParamDataclass):
+    """Line parameters.
+
+    Attributes:
+        offset (float)
+        amplitude (float)
+    """
+
     offset: float
     amplitude: float
     std: "_t.Optional[LineParam]" = None
@@ -45,10 +52,7 @@ def line_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
 
 
 class Line(FitLogic[LineParam]):  # type: ignore
-    r"""Fit Hyperbola function.
-
-
-    Function:
+    r"""Line function.
     ---------
 
     $$
@@ -57,21 +61,15 @@ class Line(FitLogic[LineParam]):  # type: ignore
 
         f(x) = offset + amplitude * x
 
-    Example:
-    ---------
-        >>> import ffit as ff
-        >>> res = ff.Line.fit(x, y).res
-
-        >>> res = ff.Line.fit(x, y, guess=[1, 2, 3, 4]).plot(ax).res
-        >>> amplitude = res.amplitude
-
     Final parameters:
     -----------------
-    - `offset`: float.
-    - `amplitude`: float.
+    The final parameters are given by [`LineParam`](../line_param/) dataclass.
+
 
     """
 
     param: _t.Type[LineParam] = LineParam
     func = staticmethod(line_func)
     _guess = staticmethod(line_guess)
+
+    _example_param = (1, 3)

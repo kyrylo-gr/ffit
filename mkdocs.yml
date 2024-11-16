@@ -50,7 +50,7 @@ plugins:
               - '^__setitem__$'
             show_source: true
             show_submodules: true
-            show_bases: true
+            show_bases: false
             show_root_heading: false
             show_root_toc_entry: false
             show_root_full_path: true
@@ -64,8 +64,9 @@ plugins:
             show_signature_annotations: false
             separate_signature: true
             unwrap_annotated: true
-            merge_init_into_class: true
-      watch: aplot/
+            merge_init_into_class: false
+            summary: false
+      watch: ffit/
 
 nav:
   - Getting Started:
@@ -74,7 +75,7 @@ nav:
   - Guide:
       - Different functions: functions/
       - Fit result object: fit_result
-      - Custom function: develop/custom_function
+      - Custom function: custom_function
   - Details:
       - Developer Guide: develop/
       - Releases: releases/

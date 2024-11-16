@@ -9,6 +9,24 @@ from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 @dataclass(frozen=True)
 class LogParam(ParamDataclass):
+    """Log parameters.
+
+    Attributes:
+        amplitude (float):
+            The amplitude of the logarithm function.
+        rate (float):
+            The rate of the logarithm function.
+        offset (float):
+            The offset at x=1.
+
+    Methods:
+    -------
+    - `amplitude_at_base(base: float = 10)`: float.
+        Return the amplitude if the base is not natural.
+    - `offset_at_base(base: float = 10)`: float.
+        Return the offset if the base is not natural.
+    """
+
     amplitude: float
     rate: float
     offset: float
@@ -23,7 +41,7 @@ class LogParam(ParamDataclass):
 
 
 def ln_func(x, amplitude, rate, offset):
-    return amplitude * np.log(rate * x) + offset - amplitude * np.log(rate)
+    return amplitude * np.log(rate * x) + offset
 
 
 def log_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
@@ -75,58 +93,40 @@ def log_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
 
 
 class Log(FitLogic[LogParam]):  # type: ignore
-    r"""Fit Log function.
-
-
-    Function
+    r"""Log function.
     ---------
     $$
-    f(x) = A * \ln(b*x)) + A_0 - A * \ln(b)
+        f(x) = A * \ln(b*x)) + A_0
     $$
 
-        f(x) = amplitude * np.log(rate * x) + offset - amplitude * np.log(rate)
+        f(x) = amplitude * np.log(rate*x) + offset
 
     Random base
     ------------
 
     For function with the random base of the logarithm:
     $$
-    f(x) = A * \log_d(b*x) + A_0 - A * \ln(b)
+        f(x) &= A * \log_d(b*x) + A_0 - A \\
+            &= \frac{A}{\ln(d)} * \ln(b*x) + A_0
     $$
 
-    We can rewrite it as:
+    One can use `amplitude_at_base` method on the result to get the amplitude in random base.
 
-    $$
-    f(x) = \frac{A}{\ln(d)} * \ln(b*x) + A_0 - \frac{A}{\ln(d)} * \ln(b)
-    $$
-
-    Therefore, not natural base can be rewritten as amplitude renormalization.
-    You can use `amplitude_at_base` method to get the right amplitude.
-
-    Example
-    ---------
-        >>> import ffit as ff
-        >>> res = ff.Log.fit(x, y).res
-
-        >>> res = ff.Log.fit(x, y, guess=[1, 2, 3]).plot(ax).res
-        >>> amplitude = res.amplitude
 
     Final parameters
     -----------------
-    - `amplitude`: float.
-        The amplitude of the logarithm function.
-    - `rate`: float.
-        The rate of the logarithm function.
-    - `offset`: float.
-        The offset at x=1.
-    - `amplitude_at_base(base: float = 10)`: float.
-        The amplitude if the base is not natural. (A * ln(d)).
-    - `offset_at_base(base: float = 10)`: float.
-        The offset if the base is not natural.
-        $ A_0 + A * \ln(b) * (1 / \ln(d) - 1) $
+    The final parameters are given by [`LogParam`](../log_param/) dataclass.
+
     """
 
     param: _t.Type[LogParam] = LogParam
 
     func = staticmethod(ln_func)
     _guess = staticmethod(log_guess)
+
+    _example_param = (3, 0.5, 3)
+    _example_x_min = 1
+    _example_x_max = 5
+
+    _range_x = (1e-5, np.inf)  # type: ignore # np.finfo(float).eps
+    _test_rtol = 0.5

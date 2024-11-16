@@ -9,6 +9,23 @@ from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 @dataclass(frozen=True)
 class LorentzianParam(ParamDataclass):
+    """Lorentzian parameters.
+
+    Attributes:
+        amplitude (float):
+            The height of the peak.
+        gamma (float):
+            The half-width at half-maximum.
+        x0 (float):
+            The position of the peak.
+        offset (float):
+            The baseline offset.
+
+    Additional attributes:
+        sigma (float):
+            The full width at half-maximum.
+    """
+
     amplitude: float
     gamma: float
     x0: float
@@ -48,10 +65,7 @@ def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
 
 
 class Lorentzian(FitLogic[LorentzianParam]):  # type: ignore
-    r"""Fit Lorentzian function.
-
-
-    Function
+    r"""Lorentzian function.
     ---------
 
     $$
@@ -62,26 +76,11 @@ class Lorentzian(FitLogic[LorentzianParam]):  # type: ignore
 
     In this notation, the width at half-height: $\sigma = 2\gamma$
 
-    Example
-    ---------
-        >>> import ffit as ff
-        >>> res = ff.Lorentzian.fit(x, y).res
-
-        >>> res = ff.Lorentzian.fit(x, y, guess=[1, 2, 3, 4]).plot(ax).res
-        >>> amplitude = res.amplitude
 
     Final parameters
     -----------------
-    - `amplitude`: float.
-        The height of the max.
-    - `gamma`: float.
-        The half-width at half-maximum.
-    - `x0`: float.
-        The position of the maximum.
-    - `offset`: float.
-        The global offset.
-    - `sigma`: float.
-        The full width at half-maximum.
+    The final parameters are given by [`LorentzianParam`](../lorentzian_param/) dataclass.
+
 
     """
 
@@ -89,3 +88,7 @@ class Lorentzian(FitLogic[LorentzianParam]):  # type: ignore
     func = staticmethod(lorentzian_func)
     _guess = staticmethod(lorentzian_guess)
     normalize_res = staticmethod(normalize_res_list)
+
+    _example_param = (5, 1, 3, 2)
+    _example_x_min = 0
+    _example_x_max = 6

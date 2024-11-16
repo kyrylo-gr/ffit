@@ -9,11 +9,35 @@ from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 @dataclass(frozen=True)
 class CosParam(ParamDataclass):
+    """Cos function parameters.
+
+    Attributes:
+    -----------------
+        amplitude (float):
+            The amplitude.
+        frequency (float):
+            The frequency in 1/[x] units.
+        phi0 (float):
+            The phase inside cos.
+        offset (float):
+            The global offset.
+
+    Additional attributes:
+    -----------------
+        omega (float):
+            The angular frequency.
+
+    """
+
     amplitude: float
     frequency: float
     phi0: float
     offset: float
     std: "_t.Optional[CosParam]" = None
+
+    @property
+    def omega(self):
+        return 2 * np.pi * self.frequency
 
 
 def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
@@ -70,37 +94,18 @@ def cos_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
 
 
 class Cos(FitLogic[CosParam]):  # type: ignore
-    r"""Fit Cos function.
-
-
-    Function
-    ---------
+    r"""Cosine function.
+    --------
 
     $$
-    f(x) = A * cos(2 * pi * \omega* x + \phi_0) + A_0
+    f(x) = A * \cos(ω ⋅ x + \phi_0) + A_0
     $$
 
         f(x) = amplitude * cos(2 * pi * frequency * x + phi0) + offset
 
-    Example
-    ---------
-        >>> import ffit as ff
-        >>> res = ff.Cos.fit(x, y).res
-
-        >>> res = ff.Cos.fit(x, y, guess=[1, 2, 3, 4]).plot(ax).res
-        >>> amplitude = res.amplitude
-
     Final parameters
     -----------------
-    - `amplitude`: float.
-        The amplitude.
-    - `frequency`: float.
-        The frequency in 1/[x] units.
-    - `phi0`: float.
-        The phase inside cos.
-    - `offset`: float.
-        The global offset.
-
+    The final parameters are given by [`CosParam`](../cos_param/) dataclass.
     """
 
     param: _t.Type[CosParam] = CosParam
@@ -109,6 +114,8 @@ class Cos(FitLogic[CosParam]):  # type: ignore
 
     normalize_res = staticmethod(normalize_res_list)
     _guess = staticmethod(cos_guess)
+
+    _example_param = (1, 1, 1.0, 1.0)
 
     @_t.overload
     @classmethod

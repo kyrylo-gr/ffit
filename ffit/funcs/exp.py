@@ -9,6 +9,21 @@ from ..utils import _NDARRAY, ParamDataclass, check_min_len
 
 @dataclass(frozen=True)
 class ExpParam(ParamDataclass):
+    """Exponential function parameters.
+
+    Attributes:
+        amplitude (float):
+            The amplitude of the exponential function.
+        rate (float):
+            The rate of the exponential function.
+        offset (float):
+            The offset of the exponential function.
+
+    Additional attributes:
+        tau (float):
+            The time constant of the exponential function, calculated as -1 / rate.
+    """
+
     amplitude: float
     rate: float
     offset: float
@@ -18,11 +33,11 @@ class ExpParam(ParamDataclass):
     def tau(self):
         return -1 / self.rate
 
-    @property
-    def tau_std(self):
-        if self.std is None:
-            return None
-        return np.abs(-1 / (self.rate**2) * self.std.rate)
+    # @property
+    # def tau_std(self):
+    #     if self.std is None:
+    #         return None
+    #     return np.abs(-1 / (self.rate**2) * self.std.rate)
 
 
 def exp_func(x, amplitude, rate, offset):
@@ -121,36 +136,22 @@ def exp_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
 
 
 class Exp(FitLogic[ExpParam]):  # type: ignore
-    r"""Fit Exp function.
+    r"""Exp function.
 
 
     Function
     ---------
 
     $$
-    f(x) = A * \exp(b*x) + A_0
+        f(x) = A \exp(Γ⋅x) + A_{\text{offset}}
     $$
 
         f(x) = amplitude * np.exp(rate * x) + offset
 
-    Example
-    ---------
-        >>> import ffit as ff
-        >>> res = ff.Exp.fit(x, y).res
-
-        >>> res = ff.Exp.fit(x, y, guess=[1, 2, 3]).plot(ax).res
-        >>> amplitude = res.amplitude
 
     Final parameters
     -----------------
-    - `amplitude`: float.
-        The amplitude of the exponential function.
-    - `rate`: float.
-        The rate of the exponential function.
-    - `offset`: float.
-        The offset of the exponential function.
-    - `tau`: float.
-        The constant of the damping exponential. ($\tau$ = -1 / rate)
+    The final parameters are given by [`ExpParam`](../exp_param/) dataclass.
 
     """
 
@@ -159,3 +160,7 @@ class Exp(FitLogic[ExpParam]):  # type: ignore
     func = staticmethod(exp_func)
     func_std = staticmethod(exp_error)
     _guess = staticmethod(exp_guess)
+
+    _example_param = (-3, -0.5, 3)
+    _example_x_min = 0
+    _example_x_max = 10
