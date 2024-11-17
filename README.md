@@ -1,7 +1,7 @@
 # FFit. Fit python library.
 
 <h1 align="center">
-<img src="../docs/images/ffit-logo.png" width="400">
+<img src="./docs/images/ffit-logo.png" width="400">
 </h1><br>
 
 [![Pypi](https://img.shields.io/pypi/v/ffit.svg)](https://pypi.org/project/ffit/)

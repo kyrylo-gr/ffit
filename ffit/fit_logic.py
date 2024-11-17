@@ -76,6 +76,7 @@ class FitLogic(_t.Generic[_T]):
     # Additional attributes:
     _test_ignore: bool  # Ignore generic tests
     _doc_ignore: bool  # Ignore automatic documentation generation
+    _doc_list_ignore: bool  # Ignore this function in the list of functions. However, add a page for it.
 
     def get_func_std(self):
         return getattr(self, "func_std", self.default_func_std)

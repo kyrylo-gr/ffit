@@ -28,7 +28,8 @@ def get_x_from_ax(ax: "Axes", expected_len: _t.Optional[int] = None) -> _NDARRAY
         raise ValueError("No lines found in the plot. X must be provided.")
     line = lines[0]
     if hasattr(line, "get_xdata"):
-        x = line.get_xdata()
+        x = line.get_xdata(orig=True)
+        assert isinstance(x, _t.Iterable)
         if expected_len and len(x) != expected_len:
             raise ValueError("X must be provided. Cannot be extracted from the plot.")
         return np.array(x)
