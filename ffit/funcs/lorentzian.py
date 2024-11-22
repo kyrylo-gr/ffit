@@ -53,11 +53,23 @@ def lorentzian_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
 
     data = np.array([x, y]).T
     sorted_data = data[data[:, 1].argsort()]
-    offset = np.mean(sorted_data[:average_size, 1])
-    amplitude = np.mean(sorted_data[-average_size:, 1]) - offset
+    lowest_amp = np.mean(sorted_data[:average_size, 1])
+    amplitude_diff = np.mean(sorted_data[-average_size:, 1]) - lowest_amp
     gamma = np.std(sorted_data[:average_size, 0])
-    x0 = np.mean(sorted_data[-average_size:, 0])
-    return np.array([amplitude, gamma, x0, offset])
+    direction = (
+        1
+        if np.std(sorted_data[: len(sorted_data) // 2, 0])
+        > np.std(sorted_data[-len(sorted_data) // 2 :, 0])
+        else -1
+    )
+
+    x0 = (
+        np.mean(sorted_data[-average_size:, 0])
+        if direction == 1
+        else np.mean(sorted_data[:average_size, 0])
+    )
+
+    return np.array([direction * amplitude_diff, gamma, x0, lowest_amp])
 
 
 def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:

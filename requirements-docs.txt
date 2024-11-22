@@ -3,5 +3,3 @@ mkdocs-material
 mkdocstrings
 mkdocstrings[python]
 mkdocs-autorefs
-
-unittest

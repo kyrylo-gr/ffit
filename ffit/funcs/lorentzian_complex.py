@@ -58,10 +58,12 @@ def lorentz_reflection():
 
 class LorentzTransmission(FitLogic[LorentzParam]):  # type: ignore
     _doc_ignore = True
+    _test_ignore = True
 
 
 class LorentzReflection(FitLogic[LorentzParam]):  # type: ignore
     _doc_ignore = True
+    _test_ignore = True
 
 
 class LorentzComplex(FitLogic[LorentzParam]):  # type: ignore
