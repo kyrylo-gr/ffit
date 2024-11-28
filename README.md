@@ -5,7 +5,7 @@
 </h1><br>
 
 [![Pypi](https://img.shields.io/pypi/v/ffit.svg)](https://pypi.org/project/ffit/)
-![Python 3.7+](https://img.shields.io/badge/python-3.7%2B-blue)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
 [![License](https://img.shields.io/badge/license-LGPL-green)](./LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![CodeFactor](https://www.codefactor.io/repository/github/kyrylo-gr/ffit/badge/main)](https://www.codefactor.io/repository/github/kyrylo-gr/ffit/overview/main)
