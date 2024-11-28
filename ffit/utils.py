@@ -286,3 +286,11 @@ def std_monte_carlo(
         simulated_functions[i, :] = func(x, *values[:, i])
 
     return np.std(simulated_functions, axis=0)
+
+
+class classproperty:
+    def __init__(self, getter):
+        self.getter = getter
+
+    def __get__(self, instance, owner):
+        return self.getter(owner)

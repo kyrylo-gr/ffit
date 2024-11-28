@@ -5,8 +5,8 @@ from .protocol import BackendABC, RunResult
 
 class ScipyBackend(BackendABC):
     @classmethod
-    def curve_fit(cls, func, xdata, ydata, *args, **kwargs):
-        popt, pcov = optimize.curve_fit(func, xdata, ydata, *args, **kwargs)
+    def curve_fit(cls, *args, **kwargs):
+        popt, pcov = optimize.curve_fit(*args, **kwargs)
 
         return RunResult(popt, {"pcov": pcov})
 

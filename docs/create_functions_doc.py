@@ -1,6 +1,8 @@
 import importlib
+import logging
 import os
 import pkgutil
+import re
 from pathlib import Path
 
 import matplotlib.font_manager as fm
@@ -63,6 +65,10 @@ def get_filename(module):
     return os.path.splitext(os.path.basename(module.__file__ or ""))[0]
 
 
+def get_filename_from_class_name(class_name):
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).lower()
+
+
 def create_plot(cls, filename):
     param_len = len(cls.param.fields())
 
@@ -122,22 +128,26 @@ def go_through_funcs():
     # Iterate through all modules in the ffit.funcs package
     for _, module_name, _ in pkgutil.iter_modules(ffit.funcs.__path__):
         module = importlib.import_module(f"ffit.funcs.{module_name}")
-        filename = get_filename(module)
         for _, cls in list(vars(module).items()):
             if (
                 isinstance(cls, type)
                 and issubclass(cls, FitLogic)
                 and cls is not FitLogic
             ):
+                # filename = get_filename(module)
                 if getattr(cls, "_doc_ignore", False):
                     continue
-                print(filename)
+                filename = get_filename_from_class_name(cls.__name__)
+                logging.info("Creating docs for %s in %s", cls.__name__, filename)
                 cls_fit = cls
 
                 create_plot(cls_fit, filename)
                 create_markdown(cls_fit, filename)
-                names_files.append((cls_fit.__name__, filename))
                 create_param_markdown(cls_fit.param, filename)
+                if cls_fit.__name__ in module.__all__ and not getattr(
+                    cls, "_doc_list_ignore", False
+                ):
+                    names_files.append((cls_fit.__name__, filename))
 
     create_index(names_files)
 

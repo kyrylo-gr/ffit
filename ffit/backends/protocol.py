@@ -54,15 +54,7 @@ class BackendABC(abc.ABC):
 
 class BackendProtocol(_t.Protocol):
     @classmethod
-    def curve_fit(cls, func, xdata, ydata, p0, *args, **kwargs) -> RunResult: ...  # noqa: E704
+    def curve_fit(cls, *args, **kwargs) -> RunResult: ...  # noqa: E704
 
     @classmethod
-    def leastsq(  # noqa: E704
-        cls,
-        func,
-        p0,
-        Dfun: _t.Optional[_t.Callable] = None,
-        col_deriv: bool = False,
-        *args,
-        **kwargs
-    ) -> RunResult: ...
+    def leastsq(cls, *args, **kwargs) -> RunResult: ...  # noqa: E704

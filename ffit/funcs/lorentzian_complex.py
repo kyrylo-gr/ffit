@@ -6,84 +6,96 @@ import numpy as np
 from ..fit_logic import FitLogic
 from ..utils import ParamDataclass
 
+__all__ = ["LorentzParam", "LorentzComplex"]
+
 
 @dataclass(frozen=True)
 class LorentzParam(ParamDataclass):
-    """Lorentz parameters.
+    """General Lorentz parameters.
 
     Attributes:
-        f0 (float):
-            The center frequency of the Lorentzian.
-        amplitude (float):
-            The amplitude of the Lorentzian.
-        bandwidth (float):
-            The bandwidth of the Lorentzian.
-        phi0 (float):
-            The phase at the center frequency.
-        amplitude0 (float):
-            The amplitude at the center frequency.
-        delay (float):
-            The electrical delay.
-        amplitude_phase (float):
-            The average phase of the impedance.
+        a (float)
+        b (float)
+        b0 (float)
+        c (float)
+        d (float)
+        d0 (float)
+        r (float)
+        amplitude0 (float)
+        amplitude_phase (float)
     """
 
-    f0: float
-    amplitude: float
-    bandwidth: float
-    phi0: float
+    a: float
+    b: float
+    b0: float
+    c: float
+    d: float
+    d0: float
+    r: float
     amplitude0: float
-    delay: float
     amplitude_phase: float
 
     std: "_t.Optional[LorentzParam]" = None
 
 
-def lorentz_func(freqs, f0, ampl, bandwidth, phi0, ampl0, delay, phaseampl):
-    del delay
-    orig = ampl0 * np.exp(1j * phi0)
-    return (
-        orig - np.exp(1j * phaseampl) * ampl / (1j * (freqs - f0) / (bandwidth) + 1)
-    ) * 1
+def lorentz_func(x, a, b, b0, c, d, d0, r, amplitude0, amplitude_phase):
+    amplitude = amplitude0 * np.exp(1j * amplitude_phase)
+    return amplitude * (a + b * (x - b0)) / (c + d * (x - d0)) * np.exp(1j * x * r)
 
 
-def lorentz_guess(x, z, **kwargs):
-    """
-    Estimate the parameters for fitting a model to the given frequency and impedance data.
-
-    Parameters:
-    - freqs (array-like): Array of frequency values.
-    - zs (array-like): Array of impedance values.
-
-    Returns:
-    - f0 (float): Estimated center frequency.
-    - ampl (float): Estimated amplitude.
-    - bandwidth (float): Estimated bandwidth.
-    - phi0 (float): Estimated phase at center frequency.
-    - ampl0 (float): Estimated amplitude at center frequency.
-    - delay (float): Estimated electrical delay.
-    - amplitude_phase (float): Estimated average phase of the impedance.
+def lorentz_guess(x, y, **kwargs):
+    del x, y, kwargs
+    return np.array([1, 1, 0, 1, 1, 0, 0, 1, 0])
 
 
-    References:
-    - https://github.com/UlysseREGLADE/abcd_rf_fit#3-estimation-of-the-electrical-delay
-    """
-    f0 = np.mean(x)
-    ampl = max(np.abs(z)) - min(np.abs(z))
-    bandwidth = np.sign(x[0]) * (x[-1] - x[0]) / 10
-    phi0 = np.mean(np.angle(z))
-    ampl0 = np.mean(np.abs(z))
+def lorentz_transmission():
+    pass
 
-    delay = 0
-    amplitude_phase = np.mean(np.angle(z))
 
-    return np.array([f0, ampl, bandwidth, phi0, ampl0, delay, amplitude_phase])
+def lorentz_reflection():
+    pass
+
+
+class LorentzTransmission(FitLogic[LorentzParam]):  # type: ignore
+    _doc_ignore = True
+    _test_ignore = True
+
+
+class LorentzReflection(FitLogic[LorentzParam]):  # type: ignore
+    _doc_ignore = True
+    _test_ignore = True
 
 
 class LorentzComplex(FitLogic[LorentzParam]):  # type: ignore
+    r"""Lorentz Transmission function.
+    ---------
+    General Lorentzian function can be written as:
+    $$
+    f(x) = Z_0 e^{i⋅x⋅r} \frac{a + b⋅(x-b_0)}{c + d⋅(x-d_0)}
+    $$
+
+        f(x) = (
+            amplitude0 * np.exp(1j * amplitude_phase)
+            *  (a + b * (x - b0)) / (c + d * (x - d0))
+            * np.exp(1j * x * r)
+        )
+
+
+    Final parameters
+    -----------------
+    The final parameters are given by [`LorentzianParam`](../lorentzian_param/) dataclass.
+
+
+    """
+
     param: _t.Type[LorentzParam] = LorentzParam
     func = staticmethod(lorentz_func)
     _guess = staticmethod(lorentz_guess)  # type: ignore
 
     _test_ignore = True
     _doc_ignore = True
+
+    Transmission = LorentzTransmission
+    Reflection = LorentzReflection
+
+    # TODO: def correct_phase(x, z:)

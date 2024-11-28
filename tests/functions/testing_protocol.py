@@ -11,7 +11,7 @@ class FuncTestingProtocol(unittest.TestCase):
 
     def prepare_xy(
         self, params: tuple, x: "np.ndarray | None | int" = None
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> "tuple[np.ndarray, np.ndarray]":
         if x is None:
             x = 100
         if isinstance(x, int):
@@ -21,10 +21,10 @@ class FuncTestingProtocol(unittest.TestCase):
 
     def assert_almost_equal_tuple(
         self,
-        t1: tuple | None,
-        t2: tuple | None,
-        normalization_constant: list[float] | float | None = None,
-        allow_error: list[float | None] | float | None = None,
+        t1: "tuple | None",
+        t2: "tuple | None",
+        normalization_constant: "list[float] | float | None" = None,
+        allow_error: "list[float | None] | float | None" = None,
         msg: str = "",
     ):
         assert t1 is not None

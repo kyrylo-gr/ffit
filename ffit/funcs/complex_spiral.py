@@ -107,7 +107,7 @@ def complex_spiral_gaussian_decay_func(
 
 
 def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
-    return np.array([x[0], x[2], x[1] % (2 * np.pi), x[3], x[4], x[5] % (2 * np.pi)])
+    return np.array([x[0], x[1], x[2] % (2 * np.pi), x[3], x[4], x[5] % (2 * np.pi)])
 
 
 class ComplexSpiralExpDecay(FitLogic[ComplexSpiralParam]):  # type: ignore
@@ -197,4 +197,3 @@ class ComplexSpiral(ComplexSpiralExpDecay):
     GaussianDecay = ComplexSpiralGaussianDecay
     ExpDecay = ComplexSpiralExpDecay
     _doc_ignore = False
-    _test_ignore = False
