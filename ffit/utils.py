@@ -295,6 +295,7 @@ class classproperty:
 
 def convert_param_class(cls: _T) -> _T:
     class ConvertedParamClass(cls):
+        _pure_param_class = cls
         _array: _NDARRAY
 
         def __init__(self, *args, **kwargs):

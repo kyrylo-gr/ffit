@@ -76,22 +76,6 @@ class FitResult(_t.Generic[_T]):
         All in one:
         >>> amp = ff.Cos().fit(x, y).plot().res.amplitude
 
-    Unpack the FitResult
-    ----------------------
-    The FitResult is based on a tuple with two elements to have right type hints.
-    You can unpack the FitResult like this:
-
-        >>> res, res_func = ff.Cos().fit(x, y)
-
-    You can also unpack it after using some methods:
-
-        >>> res, res_func = ff.Cos().fit(x, y).plot(ax, x=x, label="Cosine fit")
-
-    Remember: fit method always returns FitResult that can be unpacked.
-    In case the fit fails, the FitResult will have `res=None, res_func=lambda x: [np.nan] * len(x)`.
-
-
-    Remember: The FitResult is immutable as based on the tuple, so you cannot change the values.
     """
 
     res_array: _NDARRAY

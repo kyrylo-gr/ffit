@@ -6,7 +6,7 @@ from ..fit_logic import FitLogic
 from ..fit_results import FitResult
 from ..utils import FuncParamClass, convert_param_class
 
-__all__ = ["LorentzParam", "LorentzComplex"]
+__all__ = ["LorentzComplex"]
 
 
 class LorentzParam(FuncParamClass):

@@ -6,6 +6,8 @@ from ..fit_logic import FitLogic
 from ..fit_results import FitResult
 from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
+__all__ = ["Lorentzian"]
+
 
 class LorentzianParam(FuncParamClass):
     """Lorentzian parameters.
