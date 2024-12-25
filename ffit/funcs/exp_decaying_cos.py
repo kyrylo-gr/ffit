@@ -1,14 +1,13 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 
-@dataclass(frozen=True)
-class ExpDecayingCosParam(ParamDataclass):
+class ExpDecayingCosParam(FuncParamClass):
     """Exponential Decaying Cosine parameters.
 
     Attributes:
@@ -32,24 +31,20 @@ class ExpDecayingCosParam(ParamDataclass):
             Calculates the rate of decay.
     """
 
-    amplitude0: float
-    frequency: float
-    phi0: float
-    offset: float
-    tau: float
-    std: "_t.Optional[ExpDecayingCosParam]" = None
+    __slots__ = ("amplitude0", "frequency", "phi0", "offset", "tau")
+    keys = ("amplitude0", "frequency", "phi0", "offset", "tau")
 
     @property
     def omega(self):
-        return 2 * np.pi * self.frequency
+        return 2 * np.pi * self.frequency  # pylint: disable=E1101
 
     @property
     def rate(self):
-        return -1 / self.tau
+        return -1 / self.tau  # pylint: disable=E1101
 
-    # @property
-    # def amplitude(self):
-    #     return self.amplitude0 * np.exp(1j * self.phi0)
+
+class ExpDecayingCosResult(ExpDecayingCosParam, FitResult[ExpDecayingCosParam]):
+    param_class = convert_param_class(ExpDecayingCosParam)
 
 
 def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
@@ -114,7 +109,7 @@ def exp_decaying_cos_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     )
 
 
-class ExpDecayingCos(FitLogic[ExpDecayingCosParam]):  # type: ignore
+class ExpDecayingCos(FitLogic[ExpDecayingCosResult]):  # type: ignore
     r"""Fit ExpDecayingCos function.
 
 
@@ -138,7 +133,8 @@ class ExpDecayingCos(FitLogic[ExpDecayingCosParam]):  # type: ignore
 
     """
 
-    param: _t.Type[ExpDecayingCosParam] = ExpDecayingCosParam
+    _result_class: _t.Type[ExpDecayingCosResult] = ExpDecayingCosResult
+
     func = staticmethod(exp_decaying_cos_func)
     # func_std = staticmethod(cos_error)
 

@@ -1,14 +1,13 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 
-@dataclass(frozen=True)
-class LogParam(ParamDataclass):
+class LogParam(FuncParamClass):
     """Log parameters.
 
     Attributes:
@@ -27,17 +26,20 @@ class LogParam(ParamDataclass):
         Return the offset if the base is not natural.
     """
 
-    amplitude: float
-    rate: float
-    offset: float
-
-    std: "_t.Optional[LogParam]" = None
+    __slots__ = ("amplitude", "rate", "offset")
+    keys = ("amplitude", "rate", "offset")
 
     def amplitude_at_base(self, base: float = 10):
-        return self.amplitude / np.log(base)
+        return self.amplitude / np.log(base)  # pylint: disable=E1101
 
     def offset_at_base(self, base: float = 10):
-        return self.offset + self.amplitude * np.log(self.rate) * (1 / np.log(base) - 1)
+        return self.offset + self.amplitude * np.log(  # pylint: disable=E1101
+            self.rate  # pylint: disable=E1101
+        ) * (1 / np.log(base) - 1)
+
+
+class LogResult(LogParam, FitResult[LogParam]):
+    param_class = convert_param_class(LogParam)
 
 
 def ln_func(x, amplitude, rate, offset):
@@ -92,7 +94,7 @@ def log_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     return np.array([a, b, c])
 
 
-class Log(FitLogic[LogParam]):  # type: ignore
+class Log(FitLogic[LogResult]):  # type: ignore
     r"""Log function.
     ---------
     $$
@@ -119,7 +121,7 @@ class Log(FitLogic[LogParam]):  # type: ignore
 
     """
 
-    param: _t.Type[LogParam] = LogParam
+    _result_class: _t.Type[LogResult] = LogResult
 
     func = staticmethod(ln_func)
     _guess = staticmethod(log_guess)

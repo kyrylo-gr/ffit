@@ -1,14 +1,13 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 
-@dataclass(frozen=True)
-class GaussianParam(ParamDataclass):
+class GaussianParam(FuncParamClass):
     """Gaussian parameters.
 
     Attributes:
@@ -22,14 +21,15 @@ class GaussianParam(ParamDataclass):
         offset (float):
             The baseline offset from zero.
 
-    Attention to not use `std` as it is reserved for standard deviation of the parameters.
+    Attention to use `sigma` and not `std`, as it is reserved for standard deviation of the parameters.
     """
 
-    mu: float
-    sigma: float
-    amplitude: float
-    offset: float
-    std: "_t.Optional[GaussianParam]" = None
+    __slots__ = ("mu", "sigma", "amplitude", "offset")
+    keys = ("mu", "sigma", "amplitude", "offset")
+
+
+class GaussianResult(GaussianParam, FitResult[GaussianParam]):
+    param_class = convert_param_class(GaussianParam)
 
 
 def gaussian_func(x, mu, sigma, amplitude, offset):
@@ -62,7 +62,7 @@ def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
     return np.array([x[0], np.abs(x[1]), x[2] * np.sign(x[1]), x[3]])
 
 
-class Gaussian(FitLogic[GaussianParam]):  # type: ignore
+class Gaussian(FitLogic[GaussianResult]):  # type: ignore
     r"""Gaussian function.
     ---------
 
@@ -91,7 +91,7 @@ class Gaussian(FitLogic[GaussianParam]):  # type: ignore
     The final parameters are given by [`GaussianParam`](../gaussian_param/) dataclass.
     """
 
-    param: _t.Type[GaussianParam] = GaussianParam
+    _result_class: _t.Type[GaussianResult] = GaussianResult
 
     func = staticmethod(gaussian_func)
     _guess = staticmethod(gaussian_guess)

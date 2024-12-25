@@ -1,14 +1,13 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 
-@dataclass(frozen=True)
-class CosParam(ParamDataclass):
+class CosParam(FuncParamClass):
     """Cos function parameters.
 
     Attributes:
@@ -29,15 +28,16 @@ class CosParam(ParamDataclass):
 
     """
 
-    amplitude: float
-    frequency: float
-    phi0: float
-    offset: float
-    std: "_t.Optional[CosParam]" = None
+    __slots__ = ("amplitude", "frequency", "phi0", "offset")
+    keys = ("amplitude", "frequency", "phi0", "offset")
 
     @property
     def omega(self):
-        return 2 * np.pi * self.frequency
+        return 2 * np.pi * self.frequency  # pylint: disable=E1101
+
+
+class CosResult(CosParam, FitResult[CosParam]):
+    param_class = convert_param_class(CosParam)
 
 
 def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
@@ -93,7 +93,7 @@ def cos_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     )
 
 
-class Cos(FitLogic[CosParam]):  # type: ignore
+class Cos(FitLogic[CosResult]):  # type: ignore
     r"""Cosine function.
     --------
 
@@ -108,7 +108,8 @@ class Cos(FitLogic[CosParam]):  # type: ignore
     The final parameters are given by [`CosParam`](../cos_param/) dataclass.
     """
 
-    param: _t.Type[CosParam] = CosParam
+    _result_class: _t.Type[CosResult] = CosResult
+
     func = staticmethod(cos_func)
     # func_std = staticmethod(cos_error)
 

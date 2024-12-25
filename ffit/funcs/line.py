@@ -1,14 +1,13 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 
-@dataclass(frozen=True)
-class LineParam(ParamDataclass):
+class LineParam(FuncParamClass):
     """Line parameters.
 
     Attributes:
@@ -16,9 +15,12 @@ class LineParam(ParamDataclass):
         amplitude (float)
     """
 
-    offset: float
-    amplitude: float
-    std: "_t.Optional[LineParam]" = None
+    __slots__ = ("offset", "amplitude")
+    keys = ("offset", "amplitude")
+
+
+class LineResult(LineParam, FitResult[LineParam]):
+    param_class = convert_param_class(LineParam)
 
 
 def line_func(x: _NDARRAY, offset: float, amplitude: float) -> _NDARRAY:
@@ -51,7 +53,7 @@ def line_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     return np.array([offset, amplitude])
 
 
-class Line(FitLogic[LineParam]):  # type: ignore
+class Line(FitLogic[LineResult]):  # type: ignore
     r"""Line function.
     ---------
 
@@ -68,7 +70,7 @@ class Line(FitLogic[LineParam]):  # type: ignore
 
     """
 
-    param: _t.Type[LineParam] = LineParam
+    _result_class: _t.Type[LineResult] = LineResult
     func = staticmethod(line_func)
     _guess = staticmethod(line_guess)
 

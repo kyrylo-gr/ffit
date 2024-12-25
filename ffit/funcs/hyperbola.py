@@ -1,14 +1,13 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 
-@dataclass(frozen=True)
-class HyperbolaParam(ParamDataclass):
+class HyperbolaParam(FuncParamClass):
     """Hyperbola parameters.
 
     Attributes:
@@ -24,11 +23,12 @@ class HyperbolaParam(ParamDataclass):
             The standard deviation of the hyperbola parameters.
     """
 
-    semix: float
-    semiy: float
-    x0: float
-    y0: float
-    std: "_t.Optional[HyperbolaParam]" = None
+    __slots__ = ("semix", "semiy", "x0", "y0")
+    keys = ("semix", "semiy", "x0", "y0")
+
+
+class HyperbolaResult(HyperbolaParam, FitResult[HyperbolaParam]):
+    param_class = convert_param_class(HyperbolaParam)
 
 
 def hyperbola_func(x, semix, semiy, x0, y0):
@@ -60,7 +60,7 @@ def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
     return np.array([abs(x[0]), x[1], x[2], x[3]])
 
 
-class Hyperbola(FitLogic[HyperbolaParam]):  # type: ignore
+class Hyperbola(FitLogic[HyperbolaResult]):  # type: ignore
     r"""Hyperbola function.
     ---------
 
@@ -76,7 +76,7 @@ class Hyperbola(FitLogic[HyperbolaParam]):  # type: ignore
 
     """
 
-    param: _t.Type[HyperbolaParam] = HyperbolaParam
+    _result_class: _t.Type[HyperbolaResult] = HyperbolaResult
 
     func = staticmethod(hyperbola_func)
     _guess = staticmethod(hyperbola_guess)

@@ -1,14 +1,13 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 
-@dataclass(frozen=True)
-class ExpParam(ParamDataclass):
+class ExpParam(FuncParamClass):
     """Exponential function parameters.
 
     Attributes:
@@ -24,20 +23,16 @@ class ExpParam(ParamDataclass):
             The time constant of the exponential function, calculated as -1 / rate.
     """
 
-    amplitude: float
-    rate: float
-    offset: float
-    std: "_t.Optional[ExpParam]" = None
+    __slots__ = ("amplitude", "rate", "offset")
+    keys = ("amplitude", "rate", "offset")
 
     @property
     def tau(self):
-        return -1 / self.rate
+        return -1 / self.rate  # pylint: disable=E1101
 
-    # @property
-    # def tau_std(self):
-    #     if self.std is None:
-    #         return None
-    #     return np.abs(-1 / (self.rate**2) * self.std.rate)
+
+class ExpResult(ExpParam, FitResult[ExpParam]):
+    param_class = convert_param_class(ExpParam)
 
 
 def exp_func(x, amplitude, rate, offset):
@@ -135,7 +130,7 @@ def exp_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     # return amplitude, concave / abs(x3 - x1), offset  # - amplitude * np.exp(x1)
 
 
-class Exp(FitLogic[ExpParam]):  # type: ignore
+class Exp(FitLogic[ExpResult]):  # type: ignore
     r"""Exp function.
 
 
@@ -155,7 +150,7 @@ class Exp(FitLogic[ExpParam]):  # type: ignore
 
     """
 
-    param: _t.Type[ExpParam] = ExpParam
+    _result_class: _t.Type[ExpResult] = ExpResult
 
     func = staticmethod(exp_func)
     func_std = staticmethod(exp_error)

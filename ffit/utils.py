@@ -1,7 +1,6 @@
 import inspect
 import re
 import typing as _t
-from dataclasses import fields
 
 import numpy as np
 
@@ -15,6 +14,7 @@ _ARRAY = _t.Union[_t.Sequence[np.ndarray], np.ndarray, _t.Sequence[float]]
 _2DARRAY = _t.Union[
     _t.Sequence[np.ndarray], np.ndarray, _t.Sequence[_t.Sequence[float]]
 ]
+_T = _t.TypeVar("_T", bound=_t.Type)
 
 
 def get_mask(
@@ -26,9 +26,10 @@ def get_mask(
     Parameters:
     - mask: The mask array or threshold (optional).
     - x: The independent variable (optional).
-    Returns:
 
+    Returns:
     - np.ndarray: The mask array.
+
     """
     if mask is None:
         if x is None:
@@ -152,12 +153,25 @@ class DynamicNamedTuple(tuple):
                 attribute names and their initial values.
             **kwargs: Keyword arguments passed to the tuple constructor.
         """
+        del args, kwargs
         if parameters is None:
             return
         self._order = {name: i for i, (name, _) in enumerate(parameters)}
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls, *args)
+
+    def asdict(self) -> _t.Dict[str, _t.Any]:
+        """
+        Convert the DynamicNamedTuple to a dictionary.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the DynamicNamedTuple.
+        """
+        return {name: self[number] for name, number in self._order.items()}
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.asdict()})"
 
 
 def get_function_args_ordered(func: _t.Callable) -> _t.List[_t.Tuple[str, _t.Any]]:
@@ -213,39 +227,22 @@ def get_random_subarrays(x, y, num_subarrays=10, selection_ratio=0.75):
     return np.array(sub_y)
 
 
-class ParamDataclass:
-    _len = 0
-    _custom_param = "std"
-
-    def __iter__(self):
-        # Iterate over all fields of the dataclass
-        for field in fields(self):  # type: ignore
-            if field.name.startswith("_") or field.name == self._custom_param:
-                continue
-            yield getattr(self, field.name)
-
-    def __post_init__(self, *args, **kwargs):
-        field_lens = sum(
-            (
-                (0 if f.name.startswith("_") or f.name == self._custom_param else 1)
-                for f in fields(self)  # type: ignore
-            ),
-            0,
-        )
-        object.__setattr__(self, "_len", field_lens)
-
-    def __len__(self):
-        return self._len  # type: ignore
+class FuncParamProtocol(_t.Protocol):
+    keys: _t.Tuple[str, ...]
 
     @classmethod
-    def fields(cls):
-        return tuple(
-            (
-                f.name
-                for f in fields(cls)  # type: ignore
-                if (not f.name.startswith("_") and f.name != cls._custom_param)
-            )
-        )
+    def __len__(cls) -> int: ...
+
+
+class FuncParamMeta(type):
+    keys: _t.Tuple[str, ...] = tuple()
+
+    def __len__(cls) -> int:
+        return len(cls.keys)
+
+
+class FuncParamClass(metaclass=FuncParamMeta):
+    pass
 
 
 def mask_func(func, mask, mask_values):
@@ -294,3 +291,27 @@ class classproperty:
 
     def __get__(self, instance, owner):
         return self.getter(owner)
+
+
+def convert_param_class(cls: _T) -> _T:
+    class ConvertedParamClass(cls):
+        _array: _NDARRAY
+
+        def __init__(self, *args, **kwargs):
+            for key, arg in zip(self.keys, args):
+                setattr(self, key, arg)
+            for key, arg in kwargs.items():
+                setattr(self, key, arg)
+
+            self._array = np.array([getattr(self, key) for key in self.keys])
+
+        def __repr__(self):
+            return f"{self.__class__.__name__}({', '.join([f'{key}={getattr(self, key)}' for key in self.keys])})"
+
+        def __iter__(self):
+            return iter(self._array)
+
+        def __len__(self):
+            return len(self._array)
+
+    return ConvertedParamClass
