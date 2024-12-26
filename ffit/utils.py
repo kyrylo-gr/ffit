@@ -4,7 +4,7 @@ import typing as _t
 
 import numpy as np
 
-from .config import DEFAULT_PRECISION
+from .config import DEFAULT_PRECISION, DEFAULT_S_PRECISION
 
 # _NDARRAY = _t.Union[np.ndarray, jnp.ndarray]
 # _ARRAY = _t.Union[_t.Sequence[jnp.ndarray], jnp.ndarray, np.ndarray]
@@ -316,3 +316,54 @@ def convert_param_class(cls: _T) -> _T:
             return len(self._array)
 
     return ConvertedParamClass
+
+
+class EquationClass:
+    name: str
+
+    def __init__(self, name, val):
+        self.name = name
+        self.val = val
+
+    @property
+    def real(self):
+        return EquationClass(f"Re({self.name})", self.val.real)
+
+    @property
+    def imag(self):
+        return EquationClass(f"Im({self.name})", self.val.imag)
+
+    def __format__(self, format_spec):
+        val = f"{self.val:{format_spec}}"
+        # if format_spec:
+        #     val = f"{self.val:{format_spec}}"
+        # else:
+        #     val = f"{self.val: {DEFAULT_PRECISION}}"
+        #     if val.strip("-0.") == "":
+        #         val = f"{self.val:{DEFAULT_S_PRECISION}}"
+        return f"{self.name} = {val}"
+
+    def __str__(self):
+        val = f"{self.val: {DEFAULT_PRECISION}}"
+        if val.strip("-0.") == "":
+            val = f"{self.val:{DEFAULT_S_PRECISION}}"
+        return f"{self.name} = {val}"
+
+    def __repr__(self):
+        return f"{self.name} = {self.val}"
+
+
+class LabelClass:
+    def __init__(self, params):
+        self._params = params
+
+    def __getattr__(self, name: str):
+        val = getattr(self._params, name)
+        if isinstance(val, (int, float, complex)):
+            return EquationClass(name, val)
+        return val
+
+
+def convert_to_label_instance(param_class, array):
+
+    return LabelClass(param_class(*array))

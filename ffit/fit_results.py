@@ -3,9 +3,14 @@ import typing as _t
 import numpy as np
 
 from .config import DEFAULT_FIT_LABEL
-from .utils import _NDARRAY, FuncParamClass, convert_param_class, get_right_color
+from .utils import (
+    _NDARRAY,
+    FuncParamClass,
+    convert_param_class,
+    convert_to_label_instance,
+    get_right_color,
+)
 
-_R = _t.TypeVar("_R", bound=_t.Sequence)
 _T = _t.TypeVar("_T")
 
 if _t.TYPE_CHECKING:
@@ -201,6 +206,10 @@ class FitResult(_t.Generic[_T]):
         return self.param_class(*self.res_array)  # type: ignore
 
     @property
+    def label(self) -> _T:
+        return convert_to_label_instance(self.param_class, self.res_array)  # type: ignore
+
+    @property
     def std(self) -> _T:
         return self.param_class(*self._std_array)  # type: ignore
 
@@ -219,9 +228,9 @@ class FitResult(_t.Generic[_T]):
         ax: _t.Optional["Axes"] = None,
         *,
         x: _t.Optional[_t.Union[_NDARRAY, int]] = None,
-        label: _t.Optional[str] = DEFAULT_FIT_LABEL,
+        label: _t.Optional[_t.Union[str, tuple, list]] = DEFAULT_FIT_LABEL,
         color: _t.Optional[_t.Union[str, int]] = None,
-        title: _t.Optional[str] = None,
+        title: _t.Optional[_t.Union[str, tuple, list]] = None,
         post_func_x: _t.Optional[_t.Callable[[_NDARRAY], _NDARRAY]] = None,
         post_func_y: _t.Optional[_t.Callable[[_NDARRAY], _NDARRAY]] = None,
         **kwargs,
@@ -255,6 +264,9 @@ class FitResult(_t.Generic[_T]):
         y_fit = self.res_func(x_fit)
         if label is not None:
             # label = format_str_with_params(self.res, label)
+            if isinstance(label, (tuple, list)):
+                label = "; ".join([str(ll) for ll in label])
+            label = str(label).strip()
             kwargs.update({"label": label})
 
         color = get_right_color(color)
@@ -268,9 +280,12 @@ class FitResult(_t.Generic[_T]):
 
         if title:
             # title = format_str_with_params(self.res, title)
+            if isinstance(title, (tuple, list)):
+                title = "; ".join([str(t) for t in title])
             current_title = ax.get_title()
             if current_title:
                 title = f"{current_title}\n{title}"
+            title = str(title).strip()
             ax.set_title(title)
 
         if label != DEFAULT_FIT_LABEL and label is not None:
