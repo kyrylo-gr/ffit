@@ -100,3 +100,18 @@ class Gaussian(FitLogic[GaussianResult]):  # type: ignore
     normalize_res = staticmethod(normalize_res_list)
 
     _example_param = (0.2, 0.2, 0.2, 0.2)
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        mu: float = None,  # type: ignore
+        sigma: float = None,  # type: ignore
+        amplitude: float = None,  # type: ignore
+        offset: float = None,  # type: ignore
+    ) -> "Gaussian": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Gaussian":
+        return super().mask(**kwargs)

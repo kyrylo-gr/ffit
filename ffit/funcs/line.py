@@ -77,3 +77,16 @@ class Line(FitLogic[LineResult]):  # type: ignore
     _guess = staticmethod(line_guess)
 
     _example_param = (1, 3)
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        offset: float = None,  # type: ignore
+        amplitude: float = None,  # type: ignore
+    ) -> "Line": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Line":
+        return super().mask(**kwargs)

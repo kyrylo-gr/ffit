@@ -106,3 +106,18 @@ class Lorentzian(FitLogic[LorentzianResult]):  # type: ignore
     _example_param = (5, 1, 3, 2)
     _example_x_min = 0
     _example_x_max = 6
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        amplitude: float = None,  # type: ignore
+        gamma: float = None,  # type: ignore
+        x0: float = None,  # type: ignore
+        offset: float = None,  # type: ignore
+    ) -> "Lorentzian": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Lorentzian":
+        return super().mask(**kwargs)

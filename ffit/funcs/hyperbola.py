@@ -87,3 +87,18 @@ class Hyperbola(FitLogic[HyperbolaResult]):  # type: ignore
     _example_param = (1, 2, 0, 0.5)
     _example_x_min = -5
     _example_x_max = 5
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        semix: float = None,  # type: ignore
+        semiy: float = None,  # type: ignore
+        x0: float = None,  # type: ignore
+        y0: float = None,  # type: ignore
+    ) -> "Hyperbola": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Hyperbola":
+        return super().mask(**kwargs)

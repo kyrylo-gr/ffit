@@ -161,3 +161,17 @@ class Exp(FitLogic[ExpResult]):  # type: ignore
     _example_param = (-3, -0.5, 3)
     _example_x_min = 0
     _example_x_max = 10
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        amplitude: float = None,  # type: ignore
+        rate: float = None,  # type: ignore
+        offset: float = None,  # type: ignore
+    ) -> "Exp": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Exp":
+        return super().mask(**kwargs)

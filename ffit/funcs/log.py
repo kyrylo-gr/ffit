@@ -134,3 +134,17 @@ class Log(FitLogic[LogResult]):  # type: ignore
 
     _range_x = (1e-5, np.inf)  # type: ignore # np.finfo(float).eps
     _test_rtol = 0.5
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        amplitude: float = None,  # type: ignore
+        rate: float = None,  # type: ignore
+        offset: float = None,  # type: ignore
+    ) -> "Log": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Log":
+        return super().mask(**kwargs)
