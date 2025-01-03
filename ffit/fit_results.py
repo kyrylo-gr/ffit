@@ -213,6 +213,12 @@ class FitResult(_t.Generic[_T]):
     def std(self) -> _T:
         return self.param_class(*self._std_array)  # type: ignore
 
+    def asdict(self) -> _t.Dict[str, _NDARRAY]:
+        return {key: self.get(key) for key in self.keys}
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.keys})"
+
     def __iter__(self):
         return iter(self.res_array)
 

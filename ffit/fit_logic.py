@@ -429,8 +429,7 @@ class FitLogic(_t.Generic[_T]):
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
-        sampling_len: _t.Optional[int] = None,
-        sampling_portion: float = 0.75,
+        num_of_permutations: _t.Optional[int] = None,
         **kwargs,
     ) -> _T:  # Tuple[_T, _t.Callable, _NDARRAY]:
         """
@@ -474,18 +473,9 @@ class FitLogic(_t.Generic[_T]):
         # Fit ones to get the best initial guess
         guess, cov = self._run_fit(x_masked, data_masked, guess, method)
 
-        # Set sampling length if not provided
-        sampling_len = (
-            int(min(max(len(x_masked) / 10, 1000), 10_000))
-            if sampling_len is None
-            else sampling_len
-        )
-
         # Run fit on random subarrays
         all_res = []
-        for xx, yy in get_random_subarrays(
-            x_masked, data_masked, sampling_len, sampling_portion
-        ):
+        for xx, yy in get_random_subarrays(x_masked, data_masked, num_of_permutations):
             res, _ = self._run_fit(xx, yy, guess, method)
             if self.normalize_res is not None:  # type: ignore
                 res = self.normalize_res(res)  # type: ignore

@@ -210,21 +210,27 @@ def check_min_len(x: _t.Optional[_ARRAY], y: _t.Optional[_ARRAY], min_len: int) 
     return True
 
 
-def get_random_subarrays(x, y, num_subarrays=10, selection_ratio=0.75):
-    sub_y = []
+def get_random_subarrays(x, y, num_of_permutations: _t.Optional[int] = None):
     total_elements = len(x)
-    num_elements_to_select = int(total_elements * selection_ratio)
+    if num_of_permutations is None:
+        num_of_permutations = int(min(max(total_elements / 10, 1_000), 5_000))
+    sub_y = []
+    # num_elements_to_select = int(total_elements * selection_ratio)
 
-    for _ in range(num_subarrays):
-        # Randomly choose a set of indexes corresponding to 75% of the elements
+    for _ in range(num_of_permutations):
         selected_indexes = np.random.choice(
-            np.arange(total_elements), size=num_elements_to_select, replace=False
+            total_elements, size=total_elements, replace=True
         )
 
         # Create the subarray using the selected indexes
         sub_y.append([x[selected_indexes], y[selected_indexes]])
 
     return np.array(sub_y)
+
+
+def bootstrap_generator(N, K):
+    for _ in range(K):
+        yield np.random.choice(N, N, replace=True)
 
 
 class FuncParamProtocol(_t.Protocol):
@@ -242,7 +248,11 @@ class FuncParamMeta(type):
 
 
 class FuncParamClass(metaclass=FuncParamMeta):
-    pass
+    def asdict(self) -> _t.Dict[str, _t.Any]:
+        return self._asdict()  # type: ignore # pylint: disable=E1101
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.asdict()})"
 
 
 def mask_func(func, mask, mask_values):
@@ -321,36 +331,94 @@ def convert_param_class(cls: _T) -> _T:
 class EquationClass:
     name: str
 
-    def __init__(self, name, val):
+    def __init__(self, name, val, units=""):
         self.name = name
         self.val = val
+        self.units = units
 
     @property
-    def real(self):
-        return EquationClass(f"Re({self.name})", self.val.real)
+    def real(self) -> "EquationClass":
+        """Get the real part."""
+        return EquationClass(f"Re({self.name})", self.val.real, self.units)
 
     @property
-    def imag(self):
-        return EquationClass(f"Im({self.name})", self.val.imag)
+    def imag(self) -> "EquationClass":
+        """Get the imaginary part."""
+        return EquationClass(f"Im({self.name})", self.val.imag, self.units)
+
+    @property
+    def abs(self) -> "EquationClass":
+        """Get the absolute value."""
+        return EquationClass(f"|{self.name}|", abs(self.val), self.units)
+
+    @property
+    def angle(self) -> "EquationClass":
+        """Get the angle in radians."""
+        return EquationClass(f"Arg({self.name})", np.angle(self.val), self.units)
+
+    @property
+    def deg(self) -> "EquationClass":
+        """Get the angle in degrees."""
+        return EquationClass(f"{self.name}°", np.angle(self.val, deg=True), self.units)
+
+    def f(self, format_spec: _t.Optional[str] = None) -> str:
+        """Format the value of the equation and return it as a string.
+
+        If format_spec is provided, it will be used to format the value.
+        IF format_spec is not provided, the value will be formatted automatically
+        to DEFAULT_PRECISION or DEFAULT_S_PRECISION.
+        """
+        if format_spec is not None:
+            return f"{self: {format_spec}}"
+        return self._auto_format()
+
+    @property
+    def s(self) -> str:
+        """Autoformat the value of the equation and return it as a string."""
+        return self._auto_format()
+
+    def n(self, new_name) -> "EquationClass":
+        """Change the name of the equation."""
+        return EquationClass(new_name, self.val, self.units)
+
+    def u(
+        self, new_units: str, coef: _t.Optional[_t.Union[float, int]] = None
+    ) -> "EquationClass":
+        """Change the units of the equation and multiply the value by a coefficient.
+        If the coefficient is an integer, it will be used as a power of 10.
+        """
+        if isinstance(coef, int):
+            coef = 10**coef
+        elif coef is None:
+            coef = 1
+        return EquationClass(self.name, self.val * coef, new_units)
 
     def __format__(self, format_spec):
         val = f"{self.val:{format_spec}}"
-        # if format_spec:
-        #     val = f"{self.val:{format_spec}}"
-        # else:
-        #     val = f"{self.val: {DEFAULT_PRECISION}}"
-        #     if val.strip("-0.") == "":
-        #         val = f"{self.val:{DEFAULT_S_PRECISION}}"
-        return f"{self.name} = {val}"
+        return f"{self.name} = {val}{self._get_units()}"
 
     def __str__(self):
-        val = f"{self.val: {DEFAULT_PRECISION}}"
-        if val.strip("-0.") == "":
-            val = f"{self.val:{DEFAULT_S_PRECISION}}"
-        return f"{self.name} = {val}"
+        return self._auto_format()
 
     def __repr__(self):
-        return f"{self.name} = {self.val}"
+        return f"{self.name} = {self.val}{self._get_units()}"
+
+    def _get_units(self) -> str:
+        if self.units:
+            return f" {self.units}"
+        return ""
+
+    def _auto_format(self) -> str:
+        if self.val < 2e3:
+            val = f"{self.val: {DEFAULT_PRECISION}}"
+            if val.strip(" -0.") == "":
+                val = f"{self.val:{DEFAULT_S_PRECISION}}"
+        else:
+            val = f"{self.val:{DEFAULT_S_PRECISION}}"
+
+        val = val.replace("e+0", "e").replace("e-0", "e-")
+
+        return f"{self.name} = {val}{self._get_units()}"
 
 
 class LabelClass:
