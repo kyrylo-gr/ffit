@@ -1,16 +1,17 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import ParamDataclass
+from ..fit_results import FitResult
+from ..utils import FuncParamClass, convert_param_class
 
-__all__ = ["LorentzParam", "LorentzComplex"]
+__all__ = ["LorentzComplex"]
+
+_T = _t.TypeVar("_T")
 
 
-@dataclass(frozen=True)
-class LorentzParam(ParamDataclass):
+class LorentzParam(_t.Generic[_T], FuncParamClass):
     """General Lorentz parameters.
 
     Attributes:
@@ -25,17 +26,21 @@ class LorentzParam(ParamDataclass):
         amplitude_phase (float)
     """
 
-    a: float
-    b: float
-    b0: float
-    c: float
-    d: float
-    d0: float
-    r: float
-    amplitude0: float
-    amplitude_phase: float
+    keys = ("a", "b", "b0", "c", "d", "d0", "r", "amplitude0", "amplitude_phase")
 
-    std: "_t.Optional[LorentzParam]" = None
+    a: _T
+    b: _T
+    b0: _T
+    c: _T
+    d: _T
+    d0: _T
+    r: _T
+    amplitude0: _T
+    amplitude_phase: _T
+
+
+class LorentzResult(LorentzParam, FitResult[LorentzParam]):
+    param_class = convert_param_class(LorentzParam)
 
 
 def lorentz_func(x, a, b, b0, c, d, d0, r, amplitude0, amplitude_phase):
@@ -56,17 +61,17 @@ def lorentz_reflection():
     pass
 
 
-class LorentzTransmission(FitLogic[LorentzParam]):  # type: ignore
+class LorentzTransmission(FitLogic[LorentzResult]):  # type: ignore
     _doc_ignore = True
     _test_ignore = True
 
 
-class LorentzReflection(FitLogic[LorentzParam]):  # type: ignore
+class LorentzReflection(FitLogic[LorentzResult]):  # type: ignore
     _doc_ignore = True
     _test_ignore = True
 
 
-class LorentzComplex(FitLogic[LorentzParam]):  # type: ignore
+class LorentzComplex(FitLogic[LorentzResult]):  # type: ignore
     r"""Lorentz Transmission function.
     ---------
     General Lorentzian function can be written as:
@@ -88,7 +93,8 @@ class LorentzComplex(FitLogic[LorentzParam]):  # type: ignore
 
     """
 
-    param: _t.Type[LorentzParam] = LorentzParam
+    _result_class: _t.Type[LorentzResult] = LorentzResult
+
     func = staticmethod(lorentz_func)
     _guess = staticmethod(lorentz_guess)  # type: ignore
 

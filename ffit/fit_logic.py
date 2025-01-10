@@ -1,25 +1,24 @@
-import abc
 import asyncio
 import typing as _t
 
 import numpy as np
 from scipy import optimize
 
-from .fit_results import FitArrayResult, FitResult, FitWithErrorResult
+from .fit_results import FitResult
 from .utils import (
     _2DARRAY,
     _ARRAY,
     _NDARRAY,
-    get_mask,
+    FuncParamProtocol,
+    classproperty,
     get_masked_data,
     get_random_subarrays,
     mask_func,
     mask_func_result,
-    param_len,
     std_monte_carlo,
 )
 
-_T = _t.TypeVar("_T", bound=_t.Sequence)
+_T = _t.TypeVar("_T", bound=FitResult)
 _POSSIBLE_FIT_METHODS = _t.Literal["least_squares", "leastsq", "curve_fit"]
 
 
@@ -44,7 +43,7 @@ class FitLogic(_t.Generic[_T]):
     - param: The parameter type for the fit.
     """
 
-    param: abc.ABCMeta
+    _result_class: _t.Type[_T]  # abc.ABCMeta
 
     def __init__(self, *args, **kwargs):
         """
@@ -57,6 +56,8 @@ class FitLogic(_t.Generic[_T]):
         del args
         for k, v in kwargs.items():
             setattr(self, f"_{k}", v)
+
+        self._param_len = len(self._result_class.keys)
 
     func: _t.Callable[..., _NDARRAY]
     func_std: _t.Callable[..., _NDARRAY]
@@ -95,6 +96,10 @@ class FitLogic(_t.Generic[_T]):
             x, self.func, mean_args, std_args, n_simulations=n_simulations
         )
 
+    @classproperty
+    def param(self) -> FuncParamProtocol:
+        return self._result_class.param_class  # type: ignore
+
     @staticmethod
     def _guess(x, y, **kwargs):
         """Abstract method for guessing initial fit parameters.
@@ -110,12 +115,13 @@ class FitLogic(_t.Generic[_T]):
         self,
         x: _ARRAY,
         data: _ARRAY,
+        *,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         maxfev: int = 10000,
         **kwargs,
-    ) -> FitWithErrorResult[_T]:  # Tuple[_T, _t.Callable, _NDARRAY]:
+    ) -> _T:  # Tuple[_T, _t.Callable, _NDARRAY]:
         """
         Fit the data using the specified fitting function.
 
@@ -142,10 +148,50 @@ class FitLogic(_t.Generic[_T]):
         # Convert x and data to numpy arrays
         x, data = np.asarray(x), np.asarray(data)
 
+        res, res_std = self._fit(
+            x,
+            data,
+            mask=mask,
+            guess=guess,
+            method=method,
+            maxfev=maxfev,
+            **kwargs,
+        )
+
+        # param = self.param(*res, std=res_std)
+
+        full_func = getattr(self, "full_func", self.__class__().func)
+
+        # print(res)
+        return self._result_class(
+            res,
+            lambda x: full_func(x, *res),
+            std=res_std,
+            x=x,
+            data=data,
+            stderr=res_std,
+            stdfunc=lambda x: self.get_func_std()(x, *res, *res_std),
+            original_func=self.func,
+        )
+
+    def _fit(
+        self,
+        x: _NDARRAY,
+        data: _NDARRAY,
+        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
+        method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
+        maxfev: int = 10000,
+        **kwargs,
+    ) -> _t.Tuple[np.ndarray, np.ndarray]:
+
         # Mask the data and check that length of masked data is greater than lens of params
-        x_masked, data_masked = get_masked_data(x, data, mask, param_len(self.param))
+        x_masked, data_masked = get_masked_data(x, data, mask, self._param_len)
         if len(x_masked) == 0 or len(data_masked) == 0:
-            return FitWithErrorResult()
+            return (
+                np.ones(self._param_len) * np.nan,
+                np.ones(self._param_len) * np.nan,
+            )
 
         # Get a guess if not provided
         if guess is None:
@@ -153,7 +199,7 @@ class FitLogic(_t.Generic[_T]):
 
         guess = tuple(guess)  # type: ignore
         # Fit the data
-        res, cov = self._fit(x_masked, data_masked, guess, method, maxfev=maxfev)
+        res, cov = self._run_fit(x_masked, data_masked, guess, method, maxfev=maxfev)
 
         # Normalize the result if necessary. Like some periodicity that should not be important
         if self.normalize_res is not None:  # type: ignore
@@ -165,32 +211,25 @@ class FitLogic(_t.Generic[_T]):
             stds = np.diag(cov)
             if self.normalize_res is not None:  # type: ignore
                 stds = self.normalize_res(stds)  # type: ignore
-            param_std = self.param(*stds)
+            param_std = stds
         else:
-            param_std = None
-        param = self.param(*res, std=param_std)
+            param_std = np.ones_like(res) * np.nan
+        return res, param_std
 
-        full_func = getattr(self, "full_func", self.__class__().func)
-
-        # print(res)
-        return FitWithErrorResult(
-            param,
-            lambda x: full_func(x, *res),
-            x=x,
-            data=data,
-            cov=cov,
-            stderr=param_std,
-            stdfunc=lambda x: self.get_func_std()(x, *res, *stds),
-        )
+    async def _async_fit(self, *args, **kwargs) -> _NDARRAY:
+        return self._fit(*args, **kwargs)[0]
 
     async def async_fit(
         self,
         x: _ARRAY,
         data: _ARRAY,
+        *,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_T] = None,
+        method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
+        maxfev: int = 10000,
         **kwargs,
-    ) -> FitWithErrorResult[_T]:
+    ) -> _T:
         """
         Asynchronously fits the model to the provided data.
 
@@ -205,26 +244,62 @@ class FitLogic(_t.Generic[_T]):
             FitWithErrorResult[_T]:
                 The result of the fitting process, including the fitted parameters and associated errors.
         """
-        return self.fit(x, data, mask, guess, **kwargs)
+        return self.fit(
+            x, data, mask=mask, guess=guess, method=method, maxfev=maxfev, **kwargs
+        )
 
     async def async_array_fit(
         self,
         x: _ARRAY,
         data: _2DARRAY,
+        *,
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
-        guess: _t.Optional[_T] = None,
+        guess: _t.Optional[_t.Union[_T, _ARRAY]] = None,
+        axis: int = -1,
+        method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
+        maxfev: int = 10000,
         **kwargs,
-    ) -> FitArrayResult[_T]:
+    ) -> _T:
+
+        # Convert x and data to numpy arrays
+        x, data = np.asarray(x), np.asarray(data)
+        if axis != -1:
+            data = np.moveaxis(data, axis, -1)
+        data_shape = data.shape
+        selected_axis_len = data_shape[-1]
+        data = data.reshape(-1, selected_axis_len)
+
         tasks = [
-            self.async_fit(x, data[i], mask=mask, guess=guess, **kwargs)
+            self._async_fit(
+                x,
+                data[i],
+                mask=mask,
+                guess=guess,
+                method=method,
+                maxfev=maxfev,
+                **kwargs,
+            )
             for i in range(len(data))
         ]
         results = await asyncio.gather(*tasks)
+        results = np.array(results)
+        fit_param_len = results.shape[-1]
 
-        def func(y):
-            return np.array([res.res_func(y) for res in results])
+        full_func = getattr(self, "full_func", self.__class__().func)
+        results = results.reshape(data_shape[:-1] + (-1,))
 
-        return FitArrayResult(results, func)  # type: ignore
+        def res_func(xx):
+            return np.array(
+                [full_func(xx, *res) for res in results.reshape(-1, fit_param_len)]
+            ).reshape(data_shape[:-1] + (-1,))
+
+        return self._result_class(
+            results,
+            res_func,
+            x=x,
+            data=data,
+            original_func=self.func,
+        )
 
     def array_fit(
         self,
@@ -233,9 +308,9 @@ class FitLogic(_t.Generic[_T]):
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_T] = None,
         **kwargs,
-    ) -> FitArrayResult[_T]:
+    ) -> _T:
         async def func():
-            return await self.async_array_fit(x, data, mask, guess, **kwargs)
+            return await self.async_array_fit(x, data, mask=mask, guess=guess, **kwargs)
 
         try:
             return asyncio.run(func())  # type: ignore
@@ -293,7 +368,7 @@ class FitLogic(_t.Generic[_T]):
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_T] = None,
         **kwargs,
-    ) -> FitResult[_T]:
+    ) -> _T:
         """Guess the initial fit parameters.
 
         This function returns an object of the class `FitResult`.
@@ -309,7 +384,6 @@ class FitLogic(_t.Generic[_T]):
         Returns:
             FitResult: The guess, including the guess parameters and the function based on the guess.
 
-
         Examples:
             >>> x = [1, 2, 3, 4, 5]
             >>> data = [2, 4, 6, 8, 10]
@@ -317,13 +391,19 @@ class FitLogic(_t.Generic[_T]):
             >>> fit_guess.plot()
         """
         if guess is not None:
-            return FitResult(
-                cls.param(*guess), lambda x: cls.func(x, *guess), x=x, data=data
+            return cls._result_class(
+                np.asarray(guess),
+                lambda x: cls.func(x, *guess),
+                x=x,
+                data=data,
             )
         x_masked, data_masked = get_masked_data(x, data, mask, mask_min_len=1)
         guess_param = cls._guess(x_masked, data_masked, **kwargs)
-        return FitResult(
-            cls.param(*guess_param), lambda x: cls.func(x, *guess_param), x=x, data=data
+        return cls._result_class(
+            np.asarray(guess_param),
+            lambda x: cls.func(x, *guess_param),
+            x=x,
+            data=data,
         )
 
     # @classmethod
@@ -349,16 +429,14 @@ class FitLogic(_t.Generic[_T]):
         mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
-        sampling_len: _t.Optional[int] = None,
-        sampling_portion: float = 0.75,
+        num_of_permutations: _t.Optional[int] = None,
         **kwargs,
-    ) -> FitWithErrorResult[_T]:  # Tuple[_T, _t.Callable, _NDARRAY]:
+    ) -> _T:  # Tuple[_T, _t.Callable, _NDARRAY]:
         """
         Fit the data using the specified fitting function.
 
         This function returns [FitResult][ffit.fit_results.FitResult] see
         the documentation for more information what is possible with it.
-
 
         Args:
             x: The independent variable.
@@ -379,68 +457,56 @@ class FitLogic(_t.Generic[_T]):
         # Convert x and data to numpy arrays
         x, data = np.asarray(x), np.asarray(data)
 
-        mask = get_mask(mask, x)
-
         # Mask the data and check that length of masked data is greater than lens of params
-        x_masked, data_masked = get_masked_data(x, data, mask, param_len(self.param))
+        x_masked, data_masked = get_masked_data(x, data, mask, self._param_len)
         if len(x_masked) == 0 or len(data_masked) == 0:
-            return FitWithErrorResult()
+            return self._result_class(
+                np.ones(self._param_len) * np.nan,
+                x=x,
+                data=data,
+            )
 
         # Get a guess if not provided
         if guess is None:
             guess = self._guess(x_masked, data_masked, **kwargs)
 
         # Fit ones to get the best initial guess
-        guess, cov = self._fit(x_masked, data_masked, guess, method)
-
-        # Set sampling length if not provided
-        sampling_len = (
-            int(min(max(len(x_masked) / 10, 1000), 10_000))
-            if sampling_len is None
-            else sampling_len
-        )
+        guess, cov = self._run_fit(x_masked, data_masked, guess, method)
 
         # Run fit on random subarrays
         all_res = []
-        for xx, yy in get_random_subarrays(
-            x_masked, data_masked, sampling_len, sampling_portion
-        ):
-            res, _ = self._fit(xx, yy, guess, method)
+        for xx, yy in get_random_subarrays(x_masked, data_masked, num_of_permutations):
+            res, _ = self._run_fit(xx, yy, guess, method)
             if self.normalize_res is not None:  # type: ignore
                 res = self.normalize_res(res)  # type: ignore
             all_res.append(res)
 
         res_means = np.mean(all_res, axis=0)
         bootstrap_std = np.std(all_res, axis=0)
-        # print(cov)
         # total_std = np.sqrt(np.diag(cov) + bootstrap_std**2)
         total_std = bootstrap_std
-        # print(res_means, total_std)
-
-        # Convert the result to a parameter object (NamedTuple)
-        param_std = self.param(*total_std)
-        param = self.param(*res_means, std=param_std)
 
         full_func = getattr(self, "full_func", self.__class__().func)
 
-        return FitWithErrorResult(
-            param,
-            lambda x: full_func(x, *res),
+        return self._result_class(
+            res_means,
+            lambda x: full_func(x, *res_means),
             x=x,
             data=data,
-            cov=cov,
-            stderr=param_std,
+            cov=cov,  # type: ignore
+            stderr=total_std,  # type: ignore
             stdfunc=lambda x: self.get_func_std()(x, *res_means, *total_std),
+            original_func=self.func,
         )
 
-    def _fit(self, x, y, guess, method: _POSSIBLE_FIT_METHODS, maxfev: int = 10000):
+    def _run_fit(self, x, y, guess, method: _POSSIBLE_FIT_METHODS, maxfev: int = 10000):
         if method in {"least_squares", "leastsq"}:
 
             def to_minimize(args):
                 return np.abs(self.func(x, *args) - y)
 
             # opt, cov, infodict, msg, ier
-            opt, cov, infodict, _, _ = optimize.leastsq(  # type: ignore
+            opt, cov, _, _, _ = optimize.leastsq(  # type: ignore
                 to_minimize, guess, full_output=True, maxfev=maxfev
             )
 
@@ -462,8 +528,7 @@ class FitLogic(_t.Generic[_T]):
     def mask(cls, **kwargs):
         instance = cls()
 
-        params_fields = cls.param.fields()  # type: ignore # pylint: disable=no-member
-        # print(params_fields)
+        params_fields = cls._result_class.keys
         mask = np.ones(len(params_fields)).astype(bool)
         mask_values = np.zeros(len(params_fields))
         for param_name, param_value in kwargs.items():
@@ -471,6 +536,7 @@ class FitLogic(_t.Generic[_T]):
                 if param_name == possible_name:
                     mask[i] = False
                     mask_values[i] = param_value
+
         # transparent_mask = len(mask) == np.count_nonzero(mask)
 
         default_func = instance.func

@@ -1,14 +1,17 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
+
+__all__ = ["Exp"]
+
+_T = _t.TypeVar("_T")
 
 
-@dataclass(frozen=True)
-class ExpParam(ParamDataclass):
+class ExpParam(_t.Generic[_T], FuncParamClass):
     """Exponential function parameters.
 
     Attributes:
@@ -24,20 +27,19 @@ class ExpParam(ParamDataclass):
             The time constant of the exponential function, calculated as -1 / rate.
     """
 
-    amplitude: float
-    rate: float
-    offset: float
-    std: "_t.Optional[ExpParam]" = None
+    keys = ("amplitude", "rate", "offset")
+
+    amplitude: _T
+    rate: _T
+    offset: _T
 
     @property
-    def tau(self):
-        return -1 / self.rate
+    def tau(self) -> _T:
+        return -1 / self.rate  # type: ignore # pylint: disable=E1101
 
-    # @property
-    # def tau_std(self):
-    #     if self.std is None:
-    #         return None
-    #     return np.abs(-1 / (self.rate**2) * self.std.rate)
+
+class ExpResult(ExpParam, FitResult[ExpParam]):
+    param_class = convert_param_class(ExpParam)
 
 
 def exp_func(x, amplitude, rate, offset):
@@ -135,7 +137,7 @@ def exp_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     # return amplitude, concave / abs(x3 - x1), offset  # - amplitude * np.exp(x1)
 
 
-class Exp(FitLogic[ExpParam]):  # type: ignore
+class Exp(FitLogic[ExpResult]):  # type: ignore
     r"""Exp function.
 
 
@@ -155,7 +157,7 @@ class Exp(FitLogic[ExpParam]):  # type: ignore
 
     """
 
-    param: _t.Type[ExpParam] = ExpParam
+    _result_class: _t.Type[ExpResult] = ExpResult
 
     func = staticmethod(exp_func)
     func_std = staticmethod(exp_error)
@@ -164,3 +166,17 @@ class Exp(FitLogic[ExpParam]):  # type: ignore
     _example_param = (-3, -0.5, 3)
     _example_x_min = 0
     _example_x_max = 10
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        amplitude: float = None,  # type: ignore
+        rate: float = None,  # type: ignore
+        offset: float = None,  # type: ignore
+    ) -> "Exp": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Exp":
+        return super().mask(**kwargs)

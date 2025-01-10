@@ -1,16 +1,17 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, EquationClass, FuncParamClass, convert_param_class
 
-__all__ = ["ComplexSpiralExpDecay", "ComplexSpiralParam"]
+__all__ = ["ComplexSpiralExpDecay", "ComplexSpiralGaussianDecay", "ComplexSpiral"]
+
+_T = _t.TypeVar("_T")
 
 
-@dataclass(frozen=True)
-class ComplexSpiralParam(ParamDataclass):
+class ComplexSpiralParam(_t.Generic[_T], FuncParamClass):
     """Complex spiral parameters.
 
     Attributes:
@@ -39,29 +40,42 @@ class ComplexSpiralParam(ParamDataclass):
             Calculates the angular frequency of the spiral.
     """
 
-    amplitude0: float
-    frequency: float
-    phi0: float
-    tau: float
-    offset_amp: float
-    offset_phase: float
-    std: "_t.Optional[ComplexSpiralParam]" = None
+    keys = (
+        "amplitude0",
+        "frequency",
+        "phi0",
+        "tau",
+        "offset_amp",
+        "offset_phase",
+    )
+
+    amplitude0: _T
+    frequency: _T
+    phi0: _T
+    tau: _T
+    offset_amp: _T
+    offset_phase: _T
 
     @property
-    def offset(self):
-        return self.offset_amp * np.exp(1j * self.offset_phase)
+    def offset(self) -> _T:
+        return self.offset_amp * np.exp(1j * self.offset_phase)  # type: ignore
 
     @property
-    def amplitude(self):
-        return self.amplitude0 * np.exp(1j * self.phi0)
+    def amplitude(self) -> _T:
+        return self.amplitude0 * np.exp(1j * self.phi0)  # type: ignore
 
     @property
-    def rate(self):
-        return -1 / self.tau
+    def rate(self) -> _T:
+        return -1.0 / self.tau  # type: ignore
 
     @property
-    def omega(self):
-        return 2 * np.pi * self.frequency
+    def omega(self) -> _T:
+        return 2 * np.pi * self.frequency  # type: ignore
+
+
+class ComplexSpiralResult(ComplexSpiralParam, FitResult[ComplexSpiralParam]):
+    param_class = convert_param_class(ComplexSpiralParam)
+    label: ComplexSpiralParam[EquationClass]  # type: ignore
 
 
 def complex_spiral_exp_decay_func(
@@ -110,8 +124,9 @@ def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
     return np.array([x[0], x[1], x[2] % (2 * np.pi), x[3], x[4], x[5] % (2 * np.pi)])
 
 
-class ComplexSpiralExpDecay(FitLogic[ComplexSpiralParam]):  # type: ignore
-    param: _t.Type[ComplexSpiralParam] = ComplexSpiralParam
+class ComplexSpiralExpDecay(FitLogic[ComplexSpiralResult]):  # type: ignore
+    _result_class: _t.Type[ComplexSpiralResult] = ComplexSpiralResult
+
     func = staticmethod(complex_spiral_exp_decay_func)
     normalize_res = staticmethod(normalize_res_list)
 

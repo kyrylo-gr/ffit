@@ -1,14 +1,17 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
+
+__all__ = ["Gaussian"]
+
+_T = _t.TypeVar("_T")
 
 
-@dataclass(frozen=True)
-class GaussianParam(ParamDataclass):
+class GaussianParam(_t.Generic[_T], FuncParamClass):
     """Gaussian parameters.
 
     Attributes:
@@ -22,14 +25,19 @@ class GaussianParam(ParamDataclass):
         offset (float):
             The baseline offset from zero.
 
-    Attention to not use `std` as it is reserved for standard deviation of the parameters.
+    Attention to use `sigma` and not `std`, as it is reserved for standard deviation of the parameters.
     """
 
-    mu: float
-    sigma: float
-    amplitude: float
-    offset: float
-    std: "_t.Optional[GaussianParam]" = None
+    keys = ("mu", "sigma", "amplitude", "offset")
+
+    mu: _T
+    sigma: _T
+    amplitude: _T
+    offset: _T
+
+
+class GaussianResult(GaussianParam, FitResult[GaussianParam]):
+    param_class = convert_param_class(GaussianParam)
 
 
 def gaussian_func(x, mu, sigma, amplitude, offset):
@@ -62,7 +70,7 @@ def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
     return np.array([x[0], np.abs(x[1]), x[2] * np.sign(x[1]), x[3]])
 
 
-class Gaussian(FitLogic[GaussianParam]):  # type: ignore
+class Gaussian(FitLogic[GaussianResult]):  # type: ignore
     r"""Gaussian function.
     ---------
 
@@ -91,10 +99,25 @@ class Gaussian(FitLogic[GaussianParam]):  # type: ignore
     The final parameters are given by [`GaussianParam`](../gaussian_param/) dataclass.
     """
 
-    param: _t.Type[GaussianParam] = GaussianParam
+    _result_class: _t.Type[GaussianResult] = GaussianResult
 
     func = staticmethod(gaussian_func)
     _guess = staticmethod(gaussian_guess)
     normalize_res = staticmethod(normalize_res_list)
 
     _example_param = (0.2, 0.2, 0.2, 0.2)
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        mu: float = None,  # type: ignore
+        sigma: float = None,  # type: ignore
+        amplitude: float = None,  # type: ignore
+        offset: float = None,  # type: ignore
+    ) -> "Gaussian": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Gaussian":
+        return super().mask(**kwargs)

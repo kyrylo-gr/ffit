@@ -1,14 +1,16 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
+
+__all__ = ["Log"]
+_T = _t.TypeVar("_T")
 
 
-@dataclass(frozen=True)
-class LogParam(ParamDataclass):
+class LogParam(_t.Generic[_T], FuncParamClass):
     """Log parameters.
 
     Attributes:
@@ -27,17 +29,28 @@ class LogParam(ParamDataclass):
         Return the offset if the base is not natural.
     """
 
-    amplitude: float
-    rate: float
-    offset: float
+    keys = ("amplitude", "rate", "offset")
 
-    std: "_t.Optional[LogParam]" = None
+    amplitude: _T
+    rate: _T
+    offset: _T
 
-    def amplitude_at_base(self, base: float = 10):
-        return self.amplitude / np.log(base)
+    def amplitude_at_base(self, base: float = 10) -> _T:
+        return self.amplitude / np.log(base)  # pylint: disable=E1101
 
-    def offset_at_base(self, base: float = 10):
-        return self.offset + self.amplitude * np.log(self.rate) * (1 / np.log(base) - 1)
+    def offset_at_base(self, base: float = 10) -> _T:
+        return (
+            self.offset
+            + self.amplitude
+            * np.log(  # pylint: disable=E1101 # type: ignore
+                self.rate  # pylint: disable=E1101 # type: ignore
+            )
+            * (1 / np.log(base) - 1)
+        )
+
+
+class LogResult(LogParam, FitResult[LogParam]):
+    param_class = convert_param_class(LogParam)
 
 
 def ln_func(x, amplitude, rate, offset):
@@ -92,7 +105,7 @@ def log_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     return np.array([a, b, c])
 
 
-class Log(FitLogic[LogParam]):  # type: ignore
+class Log(FitLogic[LogResult]):  # type: ignore
     r"""Log function.
     ---------
     $$
@@ -119,7 +132,7 @@ class Log(FitLogic[LogParam]):  # type: ignore
 
     """
 
-    param: _t.Type[LogParam] = LogParam
+    _result_class: _t.Type[LogResult] = LogResult
 
     func = staticmethod(ln_func)
     _guess = staticmethod(log_guess)
@@ -130,3 +143,17 @@ class Log(FitLogic[LogParam]):  # type: ignore
 
     _range_x = (1e-5, np.inf)  # type: ignore # np.finfo(float).eps
     _test_rtol = 0.5
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        amplitude: float = None,  # type: ignore
+        rate: float = None,  # type: ignore
+        offset: float = None,  # type: ignore
+    ) -> "Log": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Log":
+        return super().mask(**kwargs)

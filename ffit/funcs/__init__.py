@@ -3,15 +3,15 @@
 import typing as _t
 
 from ..fit_logic import FitLogic
-from .complex_spiral import ComplexSpiral, ComplexSpiralParam
-from .cos import Cos, CosParam
-from .exp import Exp, ExpParam
-from .gaussian import Gaussian, GaussianParam
-from .hyperbola import Hyperbola, HyperbolaParam
-from .line import Line, LineParam
-from .log import Log, LogParam
-from .lorentzian import Lorentzian, LorentzianParam
-from .lorentzian_complex import LorentzComplex, LorentzParam
+from .complex_spiral import ComplexSpiral
+from .cos import Cos
+from .exp import Exp
+from .gaussian import Gaussian
+from .hyperbola import Hyperbola
+from .line import Line
+from .log import Log
+from .lorentzian import Lorentzian
+from .lorentzian_complex import LorentzComplex
 
 FIT_FUNCTIONS: _t.Dict[str, _t.Type[FitLogic]] = {
     "cos": Cos,
@@ -21,4 +21,7 @@ FIT_FUNCTIONS: _t.Dict[str, _t.Type[FitLogic]] = {
     "damped_exp": Exp,
     "complex_spiral": ComplexSpiral,
     "lorentz": LorentzComplex,
+    "gaussian": Gaussian,
+    "log": Log,
+    "lorentzian": Lorentzian,
 }

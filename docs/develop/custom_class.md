@@ -10,16 +10,17 @@ To contribute a new class, create a new file in the `ffit/funcs` directory. Name
 
 ## Create a Param Class
 
-Start by defining the function parameters in a dataclass that inherits from `ParamDataclass`.
+Start by defining the function parameters in a class that inherits from `ParamDataclass`.
 
-The `std` attribute should have the type `Optional[CustomFuncParam]` and default to `None`.
+Also define the final result class that inherits from `FitResult` and `CustomFuncParam` to provide users with accurate typing.
+The final result class should have attribute `param_class` set to the converted `CustomFuncParam` class.
 
 ```python
 from dataclasses import dataclass
-from ffit.utils import ParamDataclass
+from ffit.utils import FuncParamClass, convert_param_class
+from ffit.fit_results import FitResult
 
-@dataclass(frozen=True)
-class CustomFuncParam(ParamDataclass):
+class CustomFuncParam(FuncParamClass):
     """CustomFunc function parameters.
 
     Attributes
@@ -39,24 +40,25 @@ class CustomFuncParam(ParamDataclass):
     - meth1: float
         The meth1 of the function.
     """
-
-    attr1: float
-    attr2: float
-    std: "Optional[FuncParam]" = None
+    __slots__ = ("attr1", "attr2")
+    keys = ("attr1", "attr2")
 
     @property
     def param1(self):
-        return self.attr1 ** 2
+        return self.attr1 ** 2 # pylint: disable=E1101
 
     def meth1(self):
-        return self.attr1 * self.attr2
+        return self.attr1 * self.attr2 # pylint: disable=E1101
+
+class CustomFuncResult(CustomFuncParam, FitResult[CustomFuncParam]):
+    param_class = convert_param_class(CustomFuncParam)
 ```
 
 ## Define the Function
 
 Define the function to be used for fitting.
 
-The first argument is the x data (type `NDARRAY`), followed by the parameters in the same order as defined in `CustomFuncParam`. The return type should be `NDARRAY`.
+The first argument is the x data (type `NDARRAY`), followed by the parameters in the same order as defined in `CustomFuncParam.keys`. The return type should be `NDARRAY`.
 
 ```python
 from ffit.utils import _NDARRAY
@@ -103,7 +105,7 @@ def normalize_res_list(x: Sequence[float]) -> _NDARRAY:
 
 ## Define the Class
 
-The main class should inherit from `FitLogic[CustomFuncParam]`. Set `CustomFuncParam` correctly to provide users with accurate typing.
+The main class should inherit from `FitLogic[CustomFuncResult]`. Set `CustomFuncResult` correctly to provide users with accurate typing.
 
 Include a minimalistic docstring with LaTeX and Python representations of the function, as well as a reference to the final parameters class.
 
@@ -111,7 +113,7 @@ Include a minimalistic docstring with LaTeX and Python representations of the fu
 from ffit.fit_logic import FitLogic
 import typing as _t
 
-class CustomFunc(FitLogic[CustomFuncParam]): # type: ignore
+class CustomFunc(FitLogic[CustomFuncResult]): # type: ignore
     r"""CustomFunc function.
     ---
 
@@ -125,14 +127,16 @@ class CustomFunc(FitLogic[CustomFuncParam]): # type: ignore
     -----------------
     The final parameters are given by [`CustomFuncParam`](../custom_func_param/) dataclass.
     """
+    _result_class: _t.Type[CustomFuncResult] = CustomFuncResult
 
-    param: _t.Type[CustomFuncParam] = CustomFuncParam
     func = staticmethod(custom_func)
     normalize_res = staticmethod(normalize_res_list)
     _guess = staticmethod(custom_func_guess)
 ```
 
 ## Additional Information
+
+In order to submit a new function, each function class should include the following information.
 
 ### Example Parameters
 

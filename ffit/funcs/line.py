@@ -1,14 +1,17 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
+
+__all__ = ["Line"]
+
+_T = _t.TypeVar("_T")
 
 
-@dataclass(frozen=True)
-class LineParam(ParamDataclass):
+class LineParam(_t.Generic[_T], FuncParamClass):
     """Line parameters.
 
     Attributes:
@@ -16,9 +19,14 @@ class LineParam(ParamDataclass):
         amplitude (float)
     """
 
-    offset: float
-    amplitude: float
-    std: "_t.Optional[LineParam]" = None
+    keys = ("offset", "amplitude")
+
+    offset: _T
+    amplitude: _T
+
+
+class LineResult(LineParam, FitResult[LineParam]):
+    param_class = convert_param_class(LineParam)
 
 
 def line_func(x: _NDARRAY, offset: float, amplitude: float) -> _NDARRAY:
@@ -51,7 +59,7 @@ def line_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     return np.array([offset, amplitude])
 
 
-class Line(FitLogic[LineParam]):  # type: ignore
+class Line(FitLogic[LineResult]):  # type: ignore
     r"""Line function.
     ---------
 
@@ -68,8 +76,21 @@ class Line(FitLogic[LineParam]):  # type: ignore
 
     """
 
-    param: _t.Type[LineParam] = LineParam
+    _result_class: _t.Type[LineResult] = LineResult
     func = staticmethod(line_func)
     _guess = staticmethod(line_guess)
 
     _example_param = (1, 3)
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        offset: float = None,  # type: ignore
+        amplitude: float = None,  # type: ignore
+    ) -> "Line": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Line":
+        return super().mask(**kwargs)

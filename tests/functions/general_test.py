@@ -6,7 +6,7 @@ import numpy as np
 
 import ffit
 from ffit.fit_logic import FitLogic
-from ffit.utils import ParamDataclass
+from ffit.utils import FuncParamProtocol
 
 
 def create_name(cls: Type[FitLogic], param, range_x=None):
@@ -42,15 +42,15 @@ def run_mask_fit(cls: Type[FitLogic], param, range_x):
     param[0] = 1
     y = cls.func(x, *param)
 
-    res = cls.mask(**{cls.param.fields()[0]: 1}).fit(x, y).res
+    res = cls.mask(**{cls.param.keys[0]: 1}).fit(x, y).res
     compare_result(
         cls, f"mask_fit:{create_name(cls, param, (min_x, max_x))}", res, param
     )
 
 
 def generate_params(cls: Type[FitLogic]):
-    param_cls: ParamDataclass = cls.param  # type: ignore
-    param_len = len(param_cls.fields())
+    param_cls: FuncParamProtocol = cls.param  # type: ignore
+    param_len = len(param_cls)
     range_x = getattr(cls, "_range_x", (-np.inf, np.inf))
     range_x = max(range_x[0], -10), min(range_x[1], 10)
 

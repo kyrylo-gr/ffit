@@ -1,14 +1,17 @@
 import typing as _t
-from dataclasses import dataclass
 
 import numpy as np
 
 from ..fit_logic import FitLogic
-from ..utils import _NDARRAY, ParamDataclass, check_min_len
+from ..fit_results import FitResult
+from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
+
+__all__ = ["Lorentzian"]
+
+_T = _t.TypeVar("_T")
 
 
-@dataclass(frozen=True)
-class LorentzianParam(ParamDataclass):
+class LorentzianParam(_t.Generic[_T], FuncParamClass):
     """Lorentzian parameters.
 
     Attributes:
@@ -26,16 +29,20 @@ class LorentzianParam(ParamDataclass):
             The full width at half-maximum.
     """
 
-    amplitude: float
-    gamma: float
-    x0: float
-    offset: float
-
-    std: "_t.Optional[LorentzianParam]" = None
+    __slots__ = ("amplitude", "gamma", "x0", "offset")
+    keys = ("amplitude", "gamma", "x0", "offset")
+    amplitude: _T
+    gamma: _T
+    x0: _T
+    offset: _T
 
     @property
-    def sigma(self):
-        return self.gamma * 2
+    def sigma(self) -> _T:
+        return self.gamma * 2  # type: ignore # pylint: disable=E1101
+
+
+class LorentzianResult(LorentzianParam, FitResult[LorentzianParam]):
+    param_class = convert_param_class(LorentzianParam)
 
 
 def lorentzian_func(
@@ -76,7 +83,7 @@ def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
     return np.array([x[0], abs(x[1]), x[2], x[3]])
 
 
-class Lorentzian(FitLogic[LorentzianParam]):  # type: ignore
+class Lorentzian(FitLogic[LorentzianResult]):  # type: ignore
     r"""Lorentzian function.
     ---------
 
@@ -96,7 +103,8 @@ class Lorentzian(FitLogic[LorentzianParam]):  # type: ignore
 
     """
 
-    param: _t.Type[LorentzianParam] = LorentzianParam
+    _result_class: _t.Type[LorentzianResult] = LorentzianResult
+
     func = staticmethod(lorentzian_func)
     _guess = staticmethod(lorentzian_guess)
     normalize_res = staticmethod(normalize_res_list)
@@ -104,3 +112,18 @@ class Lorentzian(FitLogic[LorentzianParam]):  # type: ignore
     _example_param = (5, 1, 3, 2)
     _example_x_min = 0
     _example_x_max = 6
+
+    @_t.overload
+    @classmethod
+    def mask(  # type: ignore # pylint: disable=W0221
+        cls,
+        *,
+        amplitude: float = None,  # type: ignore
+        gamma: float = None,  # type: ignore
+        x0: float = None,  # type: ignore
+        offset: float = None,  # type: ignore
+    ) -> "Lorentzian": ...
+
+    @classmethod
+    def mask(cls, **kwargs) -> "Lorentzian":
+        return super().mask(**kwargs)
