@@ -8,8 +8,10 @@ from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 __all__ = ["Lorentzian"]
 
+_T = _t.TypeVar("_T")
 
-class LorentzianParam(FuncParamClass):
+
+class LorentzianParam(_t.Generic[_T], FuncParamClass):
     """Lorentzian parameters.
 
     Attributes:
@@ -29,10 +31,14 @@ class LorentzianParam(FuncParamClass):
 
     __slots__ = ("amplitude", "gamma", "x0", "offset")
     keys = ("amplitude", "gamma", "x0", "offset")
+    amplitude: _T
+    gamma: _T
+    x0: _T
+    offset: _T
 
     @property
-    def sigma(self):
-        return self.gamma * 2  # pylint: disable=E1101
+    def sigma(self) -> _T:
+        return self.gamma * 2  # type: ignore # pylint: disable=E1101
 
 
 class LorentzianResult(LorentzianParam, FitResult[LorentzianParam]):

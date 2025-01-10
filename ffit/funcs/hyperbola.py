@@ -8,8 +8,10 @@ from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 __all__ = ["Hyperbola"]
 
+_T = _t.TypeVar("_T")
 
-class HyperbolaParam(FuncParamClass):
+
+class HyperbolaParam(_t.Generic[_T], FuncParamClass):
     """Hyperbola parameters.
 
     Attributes:
@@ -25,8 +27,12 @@ class HyperbolaParam(FuncParamClass):
             The standard deviation of the hyperbola parameters.
     """
 
-    __slots__ = ("semix", "semiy", "x0", "y0")
     keys = ("semix", "semiy", "x0", "y0")
+
+    semix: _T
+    semiy: _T
+    x0: _T
+    y0: _T
 
 
 class HyperbolaResult(HyperbolaParam, FitResult[HyperbolaParam]):

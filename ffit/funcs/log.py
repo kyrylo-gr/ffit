@@ -7,9 +7,10 @@ from ..fit_results import FitResult
 from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 __all__ = ["Log"]
+_T = _t.TypeVar("_T")
 
 
-class LogParam(FuncParamClass):
+class LogParam(_t.Generic[_T], FuncParamClass):
     """Log parameters.
 
     Attributes:
@@ -28,16 +29,24 @@ class LogParam(FuncParamClass):
         Return the offset if the base is not natural.
     """
 
-    __slots__ = ("amplitude", "rate", "offset")
     keys = ("amplitude", "rate", "offset")
 
-    def amplitude_at_base(self, base: float = 10):
+    amplitude: _T
+    rate: _T
+    offset: _T
+
+    def amplitude_at_base(self, base: float = 10) -> _T:
         return self.amplitude / np.log(base)  # pylint: disable=E1101
 
-    def offset_at_base(self, base: float = 10):
-        return self.offset + self.amplitude * np.log(  # pylint: disable=E1101
-            self.rate  # pylint: disable=E1101
-        ) * (1 / np.log(base) - 1)
+    def offset_at_base(self, base: float = 10) -> _T:
+        return (
+            self.offset
+            + self.amplitude
+            * np.log(  # pylint: disable=E1101 # type: ignore
+                self.rate  # pylint: disable=E1101 # type: ignore
+            )
+            * (1 / np.log(base) - 1)
+        )
 
 
 class LogResult(LogParam, FitResult[LogParam]):

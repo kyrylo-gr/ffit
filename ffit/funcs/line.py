@@ -8,8 +8,10 @@ from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 __all__ = ["Line"]
 
+_T = _t.TypeVar("_T")
 
-class LineParam(FuncParamClass):
+
+class LineParam(_t.Generic[_T], FuncParamClass):
     """Line parameters.
 
     Attributes:
@@ -17,8 +19,10 @@ class LineParam(FuncParamClass):
         amplitude (float)
     """
 
-    __slots__ = ("offset", "amplitude")
     keys = ("offset", "amplitude")
+
+    offset: _T
+    amplitude: _T
 
 
 class LineResult(LineParam, FitResult[LineParam]):

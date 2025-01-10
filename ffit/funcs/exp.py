@@ -8,8 +8,10 @@ from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 __all__ = ["Exp"]
 
+_T = _t.TypeVar("_T")
 
-class ExpParam(FuncParamClass):
+
+class ExpParam(_t.Generic[_T], FuncParamClass):
     """Exponential function parameters.
 
     Attributes:
@@ -25,12 +27,15 @@ class ExpParam(FuncParamClass):
             The time constant of the exponential function, calculated as -1 / rate.
     """
 
-    __slots__ = ("amplitude", "rate", "offset")
     keys = ("amplitude", "rate", "offset")
 
+    amplitude: _T
+    rate: _T
+    offset: _T
+
     @property
-    def tau(self):
-        return -1 / self.rate  # pylint: disable=E1101
+    def tau(self) -> _T:
+        return -1 / self.rate  # type: ignore # pylint: disable=E1101
 
 
 class ExpResult(ExpParam, FitResult[ExpParam]):

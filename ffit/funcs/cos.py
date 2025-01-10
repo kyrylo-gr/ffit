@@ -8,8 +8,10 @@ from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 __all__ = ["Cos"]
 
+_T = _t.TypeVar("_T")
 
-class CosParam(FuncParamClass):
+
+class CosParam(_t.Generic[_T], FuncParamClass):
     """Cos function parameters.
 
     Attributes:
@@ -30,12 +32,16 @@ class CosParam(FuncParamClass):
 
     """
 
-    __slots__ = ("amplitude", "frequency", "phi0", "offset")
+    # __slots__ = ("amplitude", "frequency", "phi0", "offset")
     keys = ("amplitude", "frequency", "phi0", "offset")
+    amplitude: _T
+    frequency: _T
+    phi0: _T
+    offset: _T
 
     @property
-    def omega(self):
-        return 2 * np.pi * self.frequency  # pylint: disable=E1101
+    def omega(self) -> _T:
+        return 2 * np.pi * self.frequency  # pylint: disable=E1101  # type: ignore
 
 
 class CosResult(CosParam, FitResult[CosParam]):

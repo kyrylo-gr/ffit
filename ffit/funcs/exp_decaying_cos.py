@@ -8,8 +8,10 @@ from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 __all__ = ["ExpDecayingCos"]
 
+_T = _t.TypeVar("_T")
 
-class ExpDecayingCosParam(FuncParamClass):
+
+class ExpDecayingCosParam(_t.Generic[_T], FuncParamClass):
     """Exponential Decaying Cosine parameters.
 
     Attributes:
@@ -33,16 +35,21 @@ class ExpDecayingCosParam(FuncParamClass):
             Calculates the rate of decay.
     """
 
-    __slots__ = ("amplitude0", "frequency", "phi0", "offset", "tau")
     keys = ("amplitude0", "frequency", "phi0", "offset", "tau")
 
-    @property
-    def omega(self):
-        return 2 * np.pi * self.frequency  # pylint: disable=E1101
+    amplitude0: _T
+    frequency: _T
+    phi0: _T
+    offset: _T
+    tau: _T
 
     @property
-    def rate(self):
-        return -1 / self.tau  # pylint: disable=E1101
+    def omega(self) -> _T:
+        return 2 * np.pi * self.frequency  # pylint: disable=E1101  # type: ignore
+
+    @property
+    def rate(self) -> _T:
+        return -1 / self.tau  # pylint: disable=E1101  # type: ignore
 
 
 class ExpDecayingCosResult(ExpDecayingCosParam, FitResult[ExpDecayingCosParam]):

@@ -8,8 +8,10 @@ from ..utils import FuncParamClass, convert_param_class
 
 __all__ = ["LorentzComplex"]
 
+_T = _t.TypeVar("_T")
 
-class LorentzParam(FuncParamClass):
+
+class LorentzParam(_t.Generic[_T], FuncParamClass):
     """General Lorentz parameters.
 
     Attributes:
@@ -24,8 +26,17 @@ class LorentzParam(FuncParamClass):
         amplitude_phase (float)
     """
 
-    __slots__ = ("a", "b", "b0", "c", "d", "d0", "r", "amplitude0", "amplitude_phase")
     keys = ("a", "b", "b0", "c", "d", "d0", "r", "amplitude0", "amplitude_phase")
+
+    a: _T
+    b: _T
+    b0: _T
+    c: _T
+    d: _T
+    d0: _T
+    r: _T
+    amplitude0: _T
+    amplitude_phase: _T
 
 
 class LorentzResult(LorentzParam, FitResult[LorentzParam]):

@@ -8,8 +8,10 @@ from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
 
 __all__ = ["Gaussian"]
 
+_T = _t.TypeVar("_T")
 
-class GaussianParam(FuncParamClass):
+
+class GaussianParam(_t.Generic[_T], FuncParamClass):
     """Gaussian parameters.
 
     Attributes:
@@ -26,8 +28,12 @@ class GaussianParam(FuncParamClass):
     Attention to use `sigma` and not `std`, as it is reserved for standard deviation of the parameters.
     """
 
-    __slots__ = ("mu", "sigma", "amplitude", "offset")
     keys = ("mu", "sigma", "amplitude", "offset")
+
+    mu: _T
+    sigma: _T
+    amplitude: _T
+    offset: _T
 
 
 class GaussianResult(GaussianParam, FitResult[GaussianParam]):

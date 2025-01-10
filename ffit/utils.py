@@ -381,6 +381,10 @@ class EquationClass:
         """Change the name of the equation."""
         return EquationClass(new_name, self.val, self.units)
 
+    def l(self, new_name) -> "EquationClass":  # noqa: E743
+        """Change the name of the equation."""
+        return EquationClass(new_name, self.val, self.units)
+
     def u(
         self, new_units: str, coef: _t.Optional[_t.Union[float, int]] = None
     ) -> "EquationClass":
