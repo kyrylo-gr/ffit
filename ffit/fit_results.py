@@ -203,7 +203,7 @@ class FitResult(_t.Generic[_T]):
 
     @property
     def res(self) -> _T:
-        return self.param_class(*self.res_array)  # type: ignore
+        return self.param_class(*self.res_array.T)  # type: ignore
 
     @property
     def label(self) -> _T:
@@ -221,6 +221,9 @@ class FitResult(_t.Generic[_T]):
 
     def __iter__(self):
         return iter(self.res_array)
+
+    def __call__(self, *args: _t.Any, **kwds: _t.Any) -> _NDARRAY:
+        return self.res_func(*args, **kwds)
 
     def __getitem__(self, index):
         if isinstance(index, str):

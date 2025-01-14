@@ -12,6 +12,7 @@ from .line import Line
 from .log import Log
 from .lorentzian import Lorentzian
 from .lorentzian_complex import LorentzComplex
+from .parabola import Parabola
 
 FIT_FUNCTIONS: _t.Dict[str, _t.Type[FitLogic]] = {
     "cos": Cos,
