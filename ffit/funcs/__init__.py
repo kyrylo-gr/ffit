@@ -12,6 +12,8 @@ from .line import Line
 from .log import Log
 from .lorentzian import Lorentzian
 from .lorentzian_complex import LorentzComplex
+from .parabola import Parabola
+from .sinc import Sinc
 
 FIT_FUNCTIONS: _t.Dict[str, _t.Type[FitLogic]] = {
     "cos": Cos,
@@ -24,4 +26,5 @@ FIT_FUNCTIONS: _t.Dict[str, _t.Type[FitLogic]] = {
     "gaussian": Gaussian,
     "log": Log,
     "lorentzian": Lorentzian,
+    "sinc": Sinc,
 }

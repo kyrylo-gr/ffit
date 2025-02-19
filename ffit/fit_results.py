@@ -43,9 +43,7 @@ def get_x_from_ax(ax: "Axes", expected_len: _t.Optional[int] = None) -> _NDARRAY
     raise ValueError("X must be provided.")
 
 
-def create_x_from_ax(
-    ax: "Axes", x: _t.Optional[_NDARRAY] = None, points: int = 200
-) -> _NDARRAY:
+def create_x_from_ax(ax: "Axes", x: _t.Optional[_NDARRAY] = None, points: int = 200) -> _NDARRAY:
     if x is None:
         lims = ax.get_xlim()
         return np.linspace(*lims, points)
@@ -131,21 +129,20 @@ class FitResult(_t.Generic[_T]):
         del kwargs
         self.res_array = np.asarray(res)
         self._ndim = self.res_array.ndim
-        self.res_func = (
-            res_func if res_func is not None else (lambda x: np.ones_like(x) * np.nan)
-        )
+        self.res_func = res_func if res_func is not None else (lambda x: np.ones_like(x) * np.nan)
         self.x = x
         self.data = data
         self.cov = cov
 
         if std is None:
-            std = np.ones_like(res) * np.nan
+            if stderr is not None:
+                std = stderr
+            else:
+                std = np.ones_like(res) * np.nan
         self._std_array = std
 
         self.stderr = stderr if stderr is not None else np.zeros_like(res)
-        self.stdfunc = (
-            stdfunc if stdfunc is not None else (lambda x: np.ones_like(x) * np.nan)
-        )
+        self.stdfunc = stdfunc if stdfunc is not None else (lambda x: np.ones_like(x) * np.nan)
         self._res_dict = {}
 
         self.success = bool(np.all(np.isnan(self.res_array)))
@@ -203,7 +200,7 @@ class FitResult(_t.Generic[_T]):
 
     @property
     def res(self) -> _T:
-        return self.param_class(*self.res_array)  # type: ignore
+        return self.param_class(*self.res_array.T)  # type: ignore
 
     @property
     def label(self) -> _T:
@@ -221,6 +218,9 @@ class FitResult(_t.Generic[_T]):
 
     def __iter__(self):
         return iter(self.res_array)
+
+    def __call__(self, *args: _t.Any, **kwds: _t.Any) -> _NDARRAY:
+        return self.res_func(*args, **kwds)
 
     def __getitem__(self, index):
         if isinstance(index, str):
