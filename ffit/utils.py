@@ -51,6 +51,7 @@ def get_masked_data(
     mask = get_mask(mask, x)
     if np.sum(mask) < mask_min_len:
         return np.array([]), np.array([])
+    # return x[mask], data[..., mask]
     return x[mask], data[mask]
 
 
@@ -210,7 +211,7 @@ def check_min_len(x: _t.Optional[_ARRAY], y: _t.Optional[_ARRAY], min_len: int) 
     return True
 
 
-def get_random_subarrays(x, y, num_of_permutations: _t.Optional[int] = None):
+def get_random_array_permutations(x, y, num_of_permutations: _t.Optional[int] = None):
     total_elements = len(x)
     if num_of_permutations is None:
         num_of_permutations = int(min(max(total_elements / 10, 1_000), 5_000))

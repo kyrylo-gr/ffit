@@ -10,9 +10,10 @@ from .utils import (
     _ARRAY,
     _NDARRAY,
     FuncParamProtocol,
+    bootstrap_generator,
     classproperty,
     get_masked_data,
-    get_random_subarrays,
+    get_random_array_permutations,
     mask_func,
     mask_func_result,
     std_monte_carlo,
@@ -77,7 +78,9 @@ class FitLogic(_t.Generic[_T]):
     # Additional attributes:
     _test_ignore: bool  # Ignore generic tests
     _doc_ignore: bool  # Ignore automatic documentation generation
-    _doc_list_ignore: bool  # Ignore this function in the list of functions. However, add a page for it.
+    _doc_list_ignore: (
+        bool  # Ignore this function in the list of functions. However, add a page for it.
+    )
 
     def get_func_std(self):
         return getattr(self, "func_std", self.default_func_std)
@@ -92,9 +95,7 @@ class FitLogic(_t.Generic[_T]):
         mean_args = args[:half_index]
         std_args = args[half_index:]
 
-        return std_monte_carlo(
-            x, self.func, mean_args, std_args, n_simulations=n_simulations
-        )
+        return std_monte_carlo(x, self.func, mean_args, std_args, n_simulations=n_simulations)
 
     @classproperty
     def param(self) -> FuncParamProtocol:
@@ -244,9 +245,7 @@ class FitLogic(_t.Generic[_T]):
             FitWithErrorResult[_T]:
                 The result of the fitting process, including the fitted parameters and associated errors.
         """
-        return self.fit(
-            x, data, mask=mask, guess=guess, method=method, maxfev=maxfev, **kwargs
-        )
+        return self.fit(x, data, mask=mask, guess=guess, method=method, maxfev=maxfev, **kwargs)
 
     async def async_array_fit(
         self,
@@ -468,14 +467,14 @@ class FitLogic(_t.Generic[_T]):
 
         # Get a guess if not provided
         if guess is None:
-            guess = self._guess(x_masked, data_masked, **kwargs)
+            guess = self._guess(x_masked, np.mean(data_masked, axis=0), **kwargs)
 
         # Fit ones to get the best initial guess
-        guess, cov = self._run_fit(x_masked, data_masked, guess, method)
+        guess, cov = self._run_fit(x_masked, np.mean(data_masked, axis=0), guess, method)
 
         # Run fit on random subarrays
         all_res = []
-        for xx, yy in get_random_subarrays(x_masked, data_masked, num_of_permutations):
+        for xx, yy in get_random_array_permutations(x_masked, data_masked, num_of_permutations):
             res, _ = self._run_fit(xx, yy, guess, method)
             if self.normalize_res is not None:  # type: ignore
                 res = self.normalize_res(res)  # type: ignore
@@ -564,3 +563,85 @@ class FitLogic(_t.Generic[_T]):
         instance.normalize_res = staticmethod(masked_normize_res)
 
         return instance
+
+    def bootstrapping2D(
+        self,
+        x: _ARRAY,
+        data: _2DARRAY,
+        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
+        method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
+        num_of_permutations: _t.Optional[int] = None,
+        **kwargs,
+    ) -> _T:  # Tuple[_T, _t.Callable, _NDARRAY]:
+        """
+        Fit the data using the specified fitting function.
+
+        This function returns [FitResult][ffit.fit_results.FitResult] see
+        the documentation for more information what is possible with it.
+
+        Args:
+            x: The independent variable.
+            data: The 2D dependent variable (data, batches).
+            mask: The mask array or threshold for data filtering (optional).
+            guess: The initial guess for fit parameters (optional).
+            method: The fitting method to use. Valid options are "least_squares", "leastsq",
+                and "curve_fit" (default: "leastsq").
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            FitResult: The result of the fit, including the fitted parameters and the fitted function.
+
+        Raises:
+            ValueError: If an invalid fitting method is provided.
+
+        """
+        # Convert x and data to numpy arrays
+        x, data = np.asarray(x), np.asarray(data)
+
+        # Mask the data and check that length of masked data is greater than lens of params
+        x_masked, data_masked = get_masked_data(x, data, mask, self._param_len)
+        if len(x_masked) == 0 or len(data_masked) == 0:
+            return self._result_class(
+                np.ones(self._param_len) * np.nan,
+                x=x,
+                data=data,
+            )
+
+        # Get a guess if not provided
+        if guess is None:
+            guess = self._guess(x_masked, np.mean(data_masked, axis=-1), **kwargs)
+
+        # Fit ones to get the best initial guess
+        guess, cov = self._run_fit(x_masked, np.mean(data_masked, axis=-1), guess, method)
+
+        # Run fit on random subarrays
+        all_res = []
+        total_elements = data_masked.shape[1]
+        if num_of_permutations is None:
+            num_of_permutations = int(min(max(total_elements / 10, 1_000), 5_000))
+
+        for selected_index in bootstrap_generator(total_elements, num_of_permutations):
+            res, _ = self._run_fit(
+                x_masked, np.mean(data_masked[:, selected_index], axis=-1), guess, method
+            )
+            if self.normalize_res is not None:  # type: ignore
+                res = self.normalize_res(res)  # type: ignore
+            all_res.append(res)
+
+        res_means = np.mean(all_res, axis=0)
+        bootstrap_std = np.std(all_res, axis=0)
+        total_std = bootstrap_std
+
+        full_func = getattr(self, "full_func", self.__class__().func)
+
+        return self._result_class(
+            res_means,
+            lambda x: full_func(x, *res_means),
+            x=x,
+            data=data,
+            cov=cov,  # type: ignore
+            stderr=total_std,  # type: ignore
+            stdfunc=lambda x: self.get_func_std()(x, *res_means, *total_std),
+            original_func=self.func,
+        )
