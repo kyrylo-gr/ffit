@@ -43,7 +43,9 @@ def get_x_from_ax(ax: "Axes", expected_len: _t.Optional[int] = None) -> _NDARRAY
     raise ValueError("X must be provided.")
 
 
-def create_x_from_ax(ax: "Axes", x: _t.Optional[_NDARRAY] = None, points: int = 200) -> _NDARRAY:
+def create_x_from_ax(
+    ax: "Axes", x: _t.Optional[_NDARRAY] = None, points: int = 200
+) -> _NDARRAY:
     if x is None:
         lims = ax.get_xlim()
         return np.linspace(*lims, points)
@@ -129,7 +131,9 @@ class FitResult(_t.Generic[_T]):
         del kwargs
         self.res_array = np.asarray(res)
         self._ndim = self.res_array.ndim
-        self.res_func = res_func if res_func is not None else (lambda x: np.ones_like(x) * np.nan)
+        self.res_func = (
+            res_func if res_func is not None else (lambda x: np.ones_like(x) * np.nan)
+        )
         self.x = x
         self.data = data
         self.cov = cov
@@ -142,7 +146,9 @@ class FitResult(_t.Generic[_T]):
         self._std_array = std
 
         self.stderr = stderr if stderr is not None else np.zeros_like(res)
-        self.stdfunc = stdfunc if stdfunc is not None else (lambda x: np.ones_like(x) * np.nan)
+        self.stdfunc = (
+            stdfunc if stdfunc is not None else (lambda x: np.ones_like(x) * np.nan)
+        )
         self._res_dict = {}
 
         self.success = bool(np.all(np.isnan(self.res_array)))
@@ -208,7 +214,7 @@ class FitResult(_t.Generic[_T]):
 
     @property
     def std(self) -> _T:
-        return self.param_class(*self._std_array)  # type: ignore
+        return self.param_class(*self._std_array.T)  # type: ignore
 
     def asdict(self) -> _t.Dict[str, _NDARRAY]:
         return {key: self.get(key) for key in self.keys}
@@ -298,6 +304,21 @@ class FitResult(_t.Generic[_T]):
             ax.legend()
 
         return self
+
+    def output_results(self, number_format: str = ".2e") -> str:
+        if np.all(self._std_array == 0):
+            return "; ".join(
+                [
+                    f"{key}: {self.res_array[i]:{number_format}}"
+                    for i, key in enumerate(self.keys)
+                ]
+            )
+        return "; ".join(
+            [
+                f"{key}: {self.res_array[i]:{number_format}} ± {self._std_array[i]:{number_format}}"
+                for i, key in enumerate(self.keys)
+            ]
+        )
 
     # def plot_thick(
     #     self,

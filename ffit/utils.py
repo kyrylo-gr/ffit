@@ -11,6 +11,7 @@ from .config import DEFAULT_PRECISION, DEFAULT_S_PRECISION
 
 _NDARRAY = np.ndarray
 _ARRAY = _t.Union[_t.Sequence[np.ndarray], np.ndarray, _t.Sequence[float]]
+_ANY_LIST_LIKE = _t.Union[_ARRAY, tuple, list]
 _2DARRAY = _t.Union[
     _t.Sequence[np.ndarray], np.ndarray, _t.Sequence[_t.Sequence[float]]
 ]
@@ -78,7 +79,6 @@ def get_right_color(color: _t.Optional[_t.Union[str, int]]) -> _t.Optional[str]:
     if isinstance(color, int) or (
         isinstance(color, str) and color.isdigit() and len(color) == 1
     ):
-
         return get_color_by_int(int(color))
     return color
 
@@ -215,7 +215,7 @@ def get_random_array_permutations(x, y, num_of_permutations: _t.Optional[int] = 
     total_elements = len(x)
     if num_of_permutations is None:
         num_of_permutations = int(min(max(total_elements / 10, 1_000), 5_000))
-    sub_y = []
+    # sub_y = []
     # num_elements_to_select = int(total_elements * selection_ratio)
 
     for _ in range(num_of_permutations):
@@ -224,9 +224,9 @@ def get_random_array_permutations(x, y, num_of_permutations: _t.Optional[int] = 
         )
 
         # Create the subarray using the selected indexes
-        sub_y.append([x[selected_indexes], y[selected_indexes]])
+        yield ([x[selected_indexes], y[selected_indexes]])
 
-    return np.array(sub_y)
+    # return np.array(sub_y)
 
 
 def bootstrap_generator(N, K):
@@ -436,7 +436,12 @@ class LabelClass:
             return EquationClass(name, val)
         return val
 
+    def __str__(self):
+        return self._params.__str__()
+
+    def __repr__(self):
+        return "\n".join([getattr(self, key).s for key in self._params.keys])
+
 
 def convert_to_label_instance(param_class, array):
-
     return LabelClass(param_class(*array))
