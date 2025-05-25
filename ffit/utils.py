@@ -284,14 +284,15 @@ def std_monte_carlo(
     n_simulations: int = 10_000,
 ) -> _NDARRAY:
     # Arrays to hold the results of each simulation
-    simulated_functions = np.zeros((n_simulations, len(x)))
+    func_shape = func(x, *means).shape
+    simulated_functions = np.zeros((n_simulations, *func_shape))
     # Sampling from normal distribution
     values = np.array(
         [np.random.normal(m, s, n_simulations) for m, s in zip(means, stds)]
     )
     # Monte Carlo simulation
     for i in range(n_simulations):
-        simulated_functions[i, :] = func(x, *values[:, i])
+        simulated_functions[i] = func(x, *values[:, i])
 
     return np.std(simulated_functions, axis=0)
 

@@ -37,6 +37,11 @@ class ExpParam(_t.Generic[_T], FuncParamClass):
     def tau(self) -> _T:
         return -1 / self.rate  # type: ignore # pylint: disable=E1101
 
+    # @property
+    # def _std_tau(self) -> _T:
+    # original_params = getattr(self, "__original_params", self)
+    # return np.abs(params_std.rate) / (self.rate * 2)
+
 
 class ExpResult(ExpParam, FitResult[ExpParam]):
     param_class = convert_param_class(ExpParam)
