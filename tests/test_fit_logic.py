@@ -1,8 +1,7 @@
 import typing as _t
 import unittest
 import numpy as np
-from dataclasses import dataclass
-from typing import ClassVar, Tuple
+
 
 from ffit.fit_logic import FitLogic
 from ffit.fit_results import FitResult
