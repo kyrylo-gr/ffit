@@ -38,6 +38,23 @@ class LorentzParam(_t.Generic[_T], FuncParamClass):
     amplitude0: _T
     amplitude_phase: _T
 
+    __latex_repr__ = (
+        r"$&amplitude0 \cdot e^{i \cdot &amplitude_phase} \cdot "
+        r"\frac{&a + &b \cdot (x - &b0)}{&c + &d \cdot (x - &d0)} \cdot "
+        r"e^{i \cdot x \cdot &r}$"
+    )
+    __latex_repr_symbols__ = {
+        "a": r"a",
+        "b": r"b",
+        "b0": r"b_0",
+        "c": r"c",
+        "d": r"d",
+        "d0": r"d_0",
+        "r": r"r",
+        "amplitude0": r"Z_0",
+        "amplitude_phase": r"\phi",
+    }
+
 
 class LorentzResult(LorentzParam, FitResult[LorentzParam]):
     param_class = convert_param_class(LorentzParam)

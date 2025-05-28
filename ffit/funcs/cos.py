@@ -39,6 +39,16 @@ class CosParam(_t.Generic[_T], FuncParamClass):
     phi0: _T
     offset: _T
 
+    __latex_repr__ = (
+        r"$&amplitude \cdot \cos(2\pi \cdot &frequency \cdot x + &phi0) + &offset$"
+    )
+    __latex_repr_symbols__ = {
+        "amplitude": r"A",
+        "frequency": r"f",
+        "phi0": r"\phi_0",
+        "offset": r"b",
+    }
+
     @property
     def omega(self) -> _T:
         return 2 * np.pi * self.frequency  # pylint: disable=E1101  # type: ignore

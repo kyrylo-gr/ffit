@@ -31,6 +31,13 @@ class ParabolaParam(_t.Generic[_T], FuncParamClass):
     x0: _T
     y0: _T
 
+    __latex_repr__ = r"$&amplitude \cdot (x - &x0)^2 + &y0$"
+    __latex_repr_symbols__ = {
+        "amplitude": r"A",
+        "x0": r"x_0",
+        "y0": r"y_0",
+    }
+
 
 class ParabolaResult(ParabolaParam, FitResult[ParabolaParam]):
     param_class = convert_param_class(ParabolaParam)

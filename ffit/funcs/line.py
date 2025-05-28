@@ -24,6 +24,12 @@ class LineParam(_t.Generic[_T], FuncParamClass):
     offset: _T
     amplitude: _T
 
+    __latex_repr__ = r"$&offset + &amplitude \cdot x$"
+    __latex_repr_symbols__ = {
+        "offset": r"b",
+        "amplitude": r"a",
+    }
+
 
 class LineResult(LineParam, FitResult[LineParam]):
     param_class = convert_param_class(LineParam)

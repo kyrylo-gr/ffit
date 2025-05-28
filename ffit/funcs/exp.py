@@ -33,9 +33,21 @@ class ExpParam(_t.Generic[_T], FuncParamClass):
     rate: _T
     offset: _T
 
+    __latex_repr__ = r"$&amplitude \cdot \exp(&rate \cdot x) + &offset$"
+    __latex_repr_symbols__ = {
+        "amplitude": r"A",
+        "rate": r"\Gamma",
+        "offset": r"b",
+    }
+
     @property
     def tau(self) -> _T:
         return -1 / self.rate  # type: ignore # pylint: disable=E1101
+
+    # @property
+    # def _std_tau(self) -> _T:
+    # original_params = getattr(self, "__original_params", self)
+    # return np.abs(params_std.rate) / (self.rate * 2)
 
 
 class ExpResult(ExpParam, FitResult[ExpParam]):

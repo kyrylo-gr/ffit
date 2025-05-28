@@ -35,8 +35,19 @@ class GaussianParam(_t.Generic[_T], FuncParamClass):
     amplitude: _T
     offset: _T
 
+    __latex_repr__ = (
+        r"$\frac{&amplitude}{\sqrt{2\pi}\,&sigma}"
+        r"\exp\left(-\frac{(x - &mu)^2}{2 &sigma^2}\right) + &offset$"
+    )
+    __latex_repr_symbols__ = {
+        "amplitude": r"A",
+        "sigma": r"\sigma",
+        "mu": r"\mu",
+        "offset": r"b",
+    }
 
-class GaussianResult(GaussianParam, FitResult[GaussianParam]):
+
+class GaussianResult(FitResult[GaussianParam], GaussianParam):
     param_class = convert_param_class(GaussianParam)
 
 

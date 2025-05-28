@@ -56,6 +56,20 @@ class ComplexSpiralParam(_t.Generic[_T], FuncParamClass):
     offset_amp: _T
     offset_phase: _T
 
+    __latex_repr__ = (
+        r"$&amplitude0 \cdot e^{i \cdot &phi0} \cdot "
+        r"e^{i \cdot 2\pi \cdot &frequency \cdot x - x/&tau} + "
+        r"e^{i \cdot &offset_phase} \cdot &offset_amp$"
+    )
+    __latex_repr_symbols__ = {
+        "amplitude0": r"Z_0",
+        "frequency": r"f",
+        "phi0": r"\phi_0",
+        "tau": r"\tau",
+        "offset_amp": r"Z_{\text{offset}}",
+        "offset_phase": r"\phi_{\text{offset}}",
+    }
+
     @property
     def offset(self) -> _T:
         return self.offset_amp * np.exp(1j * self.offset_phase)  # type: ignore

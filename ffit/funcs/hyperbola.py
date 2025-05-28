@@ -34,6 +34,16 @@ class HyperbolaParam(_t.Generic[_T], FuncParamClass):
     x0: _T
     y0: _T
 
+    __latex_repr__ = (
+        r"$&y0 + &semiy \cdot \sqrt{1 + \left(\frac{x - &x0}{&semix}\right)^2}$"
+    )
+    __latex_repr_symbols__ = {
+        "semix": r"a",
+        "semiy": r"b",
+        "x0": r"x_0",
+        "y0": r"y_0",
+    }
+
 
 class HyperbolaResult(HyperbolaParam, FitResult[HyperbolaParam]):
     param_class = convert_param_class(HyperbolaParam)
