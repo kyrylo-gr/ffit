@@ -8,6 +8,7 @@ from .utils import (
     FuncParamClass,
     convert_param_class,
     convert_to_label_instance,
+    format_value_to_latex,
     get_right_color,
 )
 
@@ -199,6 +200,10 @@ class FitResult(_t.Generic[_T]):
         )
 
     def __getattr__(self, name: str) -> _t.Any:
+        if name.startswith("_"):
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
         return self.get(name)
 
     def res_and_func(self) -> _t.Tuple[_NDARRAY, _t.Callable]:
@@ -221,6 +226,23 @@ class FitResult(_t.Generic[_T]):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.keys})"
+
+    def _repr_latex_(self) -> str:
+        """Return a LaTeX representation of the fit results for Jupyter notebooks.
+
+        Returns:
+            str: A LaTeX string representation of the fit results.
+        """
+        if hasattr(self, "__latex_repr__"):
+            latex_repr = self.__latex_repr__
+
+            # latex_repr = latex_repr.format(**self.asdict())
+            for key, value in self.asdict().items():
+                value_str = format_value_to_latex(float(value))
+                latex_repr = latex_repr.replace(f"&{key}", f"{{{value_str}}}")
+            return latex_repr
+
+        return self.__repr__()
 
     def __iter__(self):
         return iter(self.res_array)

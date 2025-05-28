@@ -103,6 +103,19 @@ class FitLogic(_t.Generic[_T]):
     def param(self) -> FuncParamProtocol:
         return self._result_class.param_class  # type: ignore
 
+    def _repr_latex_(self) -> str:
+        if hasattr(self, "_result_class"):
+            if hasattr(self._result_class, "__latex_eq__"):
+                return self._result_class.__latex_eq__  # type: ignore
+            if hasattr(self._result_class, "__latex_repr__") and hasattr(
+                self._result_class, "__latex_repr_symbols__"
+            ):
+                res = self._result_class.__latex_repr__  # type: ignore
+                for k, v in self._result_class.__latex_repr_symbols__.items():  # type: ignore
+                    res = res.replace(f"&{k}", f"{{{v}}}")
+                return res
+        return self.__repr__()
+
     @staticmethod
     def _guess(x, y, **kwargs):
         """Abstract method for guessing initial fit parameters.
@@ -119,7 +132,7 @@ class FitLogic(_t.Generic[_T]):
         x: _ARRAY,
         data: _ARRAY,
         *,
-        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        mask: _t.Optional[_ARRAY] = None,
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         maxfev: int = 10000,
@@ -150,6 +163,10 @@ class FitLogic(_t.Generic[_T]):
         """
         # Convert x and data to numpy arrays
         x, data = np.asarray(x), np.asarray(data)
+        if len(x) != len(data):
+            raise ValueError("x and data must have the same length")
+        if mask is not None and len(mask) != len(x):
+            raise ValueError("mask must have the same length as x and data")
 
         res, res_std = self._fit(
             x,
@@ -181,7 +198,7 @@ class FitLogic(_t.Generic[_T]):
         self,
         x: _NDARRAY,
         data: _NDARRAY,
-        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        mask: _t.Optional[_ARRAY] = None,
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         maxfev: int = 10000,
@@ -226,7 +243,7 @@ class FitLogic(_t.Generic[_T]):
         x: _ARRAY,
         data: _ARRAY,
         *,
-        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        mask: _t.Optional[_ARRAY] = None,
         guess: _t.Optional[_T] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         maxfev: int = 10000,
@@ -393,7 +410,7 @@ class FitLogic(_t.Generic[_T]):
         x: _ARRAY,
         data: _2DARRAY,
         *,
-        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        mask: _t.Optional[_ARRAY] = None,
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         axis: int = -1,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
@@ -479,7 +496,7 @@ class FitLogic(_t.Generic[_T]):
         cls,
         x,
         data,
-        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        mask: _t.Optional[_ARRAY] = None,
         guess: _t.Optional[_T] = None,
         **kwargs,
     ) -> _T:
@@ -540,7 +557,7 @@ class FitLogic(_t.Generic[_T]):
         self,
         x: _NDARRAY,
         data: _NDARRAY,
-        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        mask: _t.Optional[_ARRAY] = None,
         guess: _t.Optional[_t.Union[_T, _ANY_LIST_LIKE]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         num_of_permutations: _t.Optional[int] = None,
@@ -582,7 +599,7 @@ class FitLogic(_t.Generic[_T]):
         self,
         x: _ARRAY,
         data: _ARRAY,
-        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        mask: _t.Optional[_ARRAY] = None,
         guess: _t.Optional[_t.Union[_T, _ANY_LIST_LIKE]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         num_of_permutations: _t.Optional[int] = None,
@@ -637,7 +654,7 @@ class FitLogic(_t.Generic[_T]):
         x: _ARRAY,
         data: _2DARRAY,
         *,
-        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        mask: _t.Optional[_ARRAY] = None,
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         axis: int = -1,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
@@ -784,7 +801,7 @@ class FitLogic(_t.Generic[_T]):
         self,
         x: _ARRAY,
         data: _2DARRAY,
-        mask: _t.Optional[_t.Union[_ARRAY, float]] = None,
+        mask: _t.Optional[_ARRAY] = None,
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         num_of_permutations: _t.Optional[int] = None,

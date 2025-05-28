@@ -37,6 +37,17 @@ class SincParam(_t.Generic[_T], FuncParamClass):
     x0: _T
     offset: _T
 
+    __latex_repr__ = (
+        r"$&amplitude \cdot \frac{\sin(2\pi \cdot &frequency \cdot (x - &x0))}"
+        r"{2\pi \cdot &frequency \cdot (x - &x0)} + &offset$"
+    )
+    __latex_repr_symbols__ = {
+        "amplitude": r"A",
+        "frequency": r"f",
+        "x0": r"x_0",
+        "offset": r"b",
+    }
+
     @property
     def omega(self) -> _T:
         return 2 * np.pi * self.frequency  # pylint: disable=E1101  # type: ignore
@@ -57,7 +68,9 @@ def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
     return np.array([x[0], x[1], x[2], x[3]])
 
 
-def sinc_func(x: _NDARRAY, amplitude: float, frequency: float, x0: float, offset: float):
+def sinc_func(
+    x: _NDARRAY, amplitude: float, frequency: float, x0: float, offset: float
+):
     """Sinc function implementation.
 
     f(x) = amplitude * sin(2π * frequency * (x - x0)) / (2π * frequency * (x - x0)) + offset
@@ -65,7 +78,9 @@ def sinc_func(x: _NDARRAY, amplitude: float, frequency: float, x0: float, offset
     return amplitude * np.sinc(frequency * (x - x0)) + offset
 
 
-def sinc_sq_func(x: _NDARRAY, amplitude: float, frequency: float, x0: float, offset: float):
+def sinc_sq_func(
+    x: _NDARRAY, amplitude: float, frequency: float, x0: float, offset: float
+):
     """Sinc function implementation.
 
     f(x) = amplitude * sin(2π * frequency * (x - x0)) / (2π * frequency * (x - x0)) + offset

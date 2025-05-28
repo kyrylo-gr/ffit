@@ -43,6 +43,18 @@ class ExpDecayingCosParam(_t.Generic[_T], FuncParamClass):
     offset: _T
     tau: _T
 
+    __latex_repr__ = (
+        r"$&amplitude0 \cdot \cos(2\pi \cdot &frequency \cdot x + &phi0) \cdot "
+        r"e^{-x/&tau} + &offset$"
+    )
+    __latex_repr_symbols__ = {
+        "amplitude0": r"A_0",
+        "frequency": r"f",
+        "phi0": r"\phi_0",
+        "offset": r"A_{\text{offset}}",
+        "tau": r"\tau",
+    }
+
     @property
     def omega(self) -> _T:
         return 2 * np.pi * self.frequency  # pylint: disable=E1101  # type: ignore

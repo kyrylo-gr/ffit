@@ -85,7 +85,6 @@ def curve_fit(
     Returns:
         FitResult: Fit result.
     """
-
     res = _curve_fit(func, x, data, p0=p0, bounds=bounds, method=method, **kwargs)
     res = np.asarray(res)
 
@@ -236,6 +235,101 @@ def bootstrap_curve_fit(
             func,
             xx,
             yy,
+            p0=initial_res,
+            bounds=bounds,
+            method=method,
+            **kwargs,
+        )
+        all_res.append(res)
+
+    # Calculate mean and standard deviation of bootstrap results
+    res_means = np.mean(all_res, axis=0)
+    bootstrap_std = np.std(all_res, axis=0)
+
+    # Get ordered parameter names
+    args_default = get_function_args_ordered(func)[1:]
+    args_ordered = tuple(key for key, _ in args_default)
+    values_ordered = tuple(val for _, val in args_default)
+
+    if len(res_means) != len(values_ordered):
+        res_means = np.concatenate([res_means, values_ordered[len(res_means) :]])
+        bootstrap_std = np.concatenate(
+            [bootstrap_std, np.zeros_like(values_ordered[len(bootstrap_std) :])]
+        )
+
+    # Return FitResult with bootstrap statistics
+    return FitResult(
+        res_means,
+        lambda x: func(x, *res_means),
+        x=x,
+        data=data,
+        keys=args_ordered,
+        stderr=bootstrap_std,
+        stdfunc=lambda x: std_monte_carlo(x, func, res_means, bootstrap_std),
+    )
+
+
+def bootstrap_curve_fit_2D(
+    func: _t.Callable,
+    x: _NDARRAY,
+    data: _2DARRAY,
+    p0: _t.Optional[_t.List[_t.Any]] = None,
+    *,
+    bounds: _t.Optional[
+        _t.Union[_t.List[_t.Tuple[_t.Any, _t.Any]], _t.Tuple[_t.Any, _t.Any]]
+    ] = (
+        -np.inf,
+        np.inf,
+    ),
+    method: _t.Literal["leastsq", "curve_fit"] = "curve_fit",
+    num_of_permutations: _t.Optional[int] = None,
+    subset_size: _t.Optional[int] = None,
+    **kwargs,
+) -> FitResult:
+    """Fit a curve with curve_fit method using bootstrapping for error estimation.
+
+    This function returns [FitResult][ffit.fit_results.FitResult] see
+    the documentation for more information what is possible with it.
+
+    Args:
+        func: Function to fit.
+        x: x data.
+        data: The 2D dependent variable (batches,data).
+        p0: Initial guess for the parameters.
+        bounds: Bounds for the parameters.
+        method: The fitting method to use (default: "curve_fit").
+        num_of_permutations: Number of bootstrap iterations.
+        **kwargs: Additional keyword arguments to curve_fit.
+
+    Returns:
+        FitResult: The result of the fit, including the fitted parameters and their uncertainties.
+    """
+    # Convert x and data to numpy arrays
+    x, data = np.asarray(x), np.asarray(data)
+
+    # Get initial fit to use as starting point for bootstrap iterations
+    initial_res = _curve_fit(
+        func, x, np.mean(data, axis=0), p0=p0, bounds=bounds, method=method, **kwargs
+    )
+
+    # Determine number of permutations if not specified
+    total_batches = data.shape[0]
+    if num_of_permutations is None:
+        num_of_permutations = int(min(max(total_batches / 10, 1_000), 5_000))
+    if subset_size is None:
+        subset_size = total_batches
+    # Run bootstrap iterations
+    all_res = []
+    for _ in range(num_of_permutations):
+        # Randomly sample batches with replacement
+        batch_indices = np.random.randint(0, total_batches, size=subset_size)
+        sampled_data = data[batch_indices]
+        mean_data = np.mean(sampled_data, axis=0)
+
+        res = _curve_fit(
+            func,
+            x,
+            mean_data,
             p0=initial_res,
             bounds=bounds,
             method=method,

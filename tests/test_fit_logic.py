@@ -1,3 +1,4 @@
+import typing as _t
 import unittest
 import numpy as np
 from dataclasses import dataclass
@@ -5,13 +6,27 @@ from typing import ClassVar, Tuple
 
 from ffit.fit_logic import FitLogic
 from ffit.fit_results import FitResult
+from ffit.utils import FuncParamClass, convert_param_class
+
+_T = _t.TypeVar("_T")
 
 
-@dataclass
-class LinearFitResult(FitResult):
-    """Test result class for linear fit."""
+class LinearFitParam(_t.Generic[_T], FuncParamClass):
+    """Line parameters.
 
-    keys: ClassVar[Tuple[str, ...]] = ("slope", "intercept")
+    Attributes:
+        offset (float)
+        amplitude (float)
+    """
+
+    keys = ("slope", "intercept")
+
+    slope: _T
+    intercept: _T
+
+
+class LinearFitResult(LinearFitParam, FitResult[LinearFitParam]):
+    param_class = convert_param_class(LinearFitParam)
 
 
 class TestLinearFit(FitLogic[LinearFitResult]):
@@ -53,7 +68,7 @@ class TestFitLogic(unittest.TestCase):
         self.assertAlmostEqual(result.intercept, self.true_intercept, places=1)
 
         # Check if fitted function works
-        y_fit = result.func(self.x)
+        y_fit = result.res_func(self.x)
         self.assertEqual(y_fit.shape, self.y.shape)
 
     def test_guess(self):
@@ -99,10 +114,10 @@ class TestFitLogic(unittest.TestCase):
         result = self.fit.array_fit(self.x, y_array)
 
         # Check shape of results
-        self.assertEqual(result.params.shape, (n_datasets, 2))  # 2 parameters
+        self.assertEqual(result.res_array.shape, (n_datasets, 2))  # 2 parameters
 
         # Check if all fits are reasonable
-        for params in result.params:
+        for params in result.res_array:
             slope, intercept = params
             self.assertLess(abs(slope - self.true_slope) / self.true_slope, 0.5)
             self.assertLess(
@@ -119,7 +134,7 @@ class TestFitLogic(unittest.TestCase):
         result = self.fit.array_fit(x_2d, y_2d)
 
         # Check if parameters are close to true values for all fits
-        for params in result.params:
+        for params in result.res_array:
             self.assertAlmostEqual(params[0], self.true_slope, places=1)
             self.assertAlmostEqual(params[1], self.true_intercept, places=1)
 
@@ -134,10 +149,10 @@ class TestFitLogic(unittest.TestCase):
         result_axis1 = self.fit.array_fit(self.x, y_array, axis=2)
 
         # Check shapes
-        self.assertEqual(result_default.params.shape, result_axis1.params.shape)
+        self.assertEqual(result_default.res_array.shape, result_axis1.res_array.shape)
 
         # Check if parameters are reasonable for both cases
-        for params in result_default.params.reshape(-1, 2):
+        for params in result_default.res_array.reshape(-1, 2):
             self.assertLess(abs(params[0] - self.true_slope) / self.true_slope, 0.5)
             self.assertLess(
                 abs(params[1] - self.true_intercept) / (self.true_intercept + 1e-10),
@@ -158,10 +173,10 @@ class TestFitLogic(unittest.TestCase):
         result = self.fit.mp_array_fit(self.x, y_array, n_jobs=2)
 
         # Check shape of results
-        self.assertEqual(result.params.shape, (n_datasets, 2))
+        self.assertEqual(result.res_array.shape, (n_datasets, 2))
 
         # Check if all fits are reasonable
-        for params in result.params:
+        for params in result.res_array:
             slope, intercept = params
             self.assertLess(abs(slope - self.true_slope) / self.true_slope, 0.5)
             self.assertLess(
@@ -183,10 +198,10 @@ class TestFitLogic(unittest.TestCase):
         result = await self.fit.async_array_fit(self.x, y_array)
 
         # Check shape of results
-        self.assertEqual(result.params.shape, (n_datasets, 2))
+        self.assertEqual(result.res_array.shape, (n_datasets, 2))
 
         # Check if all fits are reasonable
-        for params in result.params:
+        for params in result.res_array:
             slope, intercept = params
             self.assertLess(abs(slope - self.true_slope) / self.true_slope, 0.5)
             self.assertLess(

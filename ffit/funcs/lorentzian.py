@@ -36,6 +36,16 @@ class LorentzianParam(_t.Generic[_T], FuncParamClass):
     x0: _T
     offset: _T
 
+    __latex_repr__ = (
+        r"$&amplitude \cdot \frac{&gamma^2}{(x - &x0)^2 + &gamma^2} + &offset$"
+    )
+    __latex_repr_symbols__ = {
+        "amplitude": r"A",
+        "gamma": r"\gamma",
+        "x0": r"x_0",
+        "offset": r"b",
+    }
+
     @property
     def sigma(self) -> _T:
         return self.gamma * 2  # type: ignore # pylint: disable=E1101

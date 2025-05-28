@@ -19,7 +19,7 @@ _T = _t.TypeVar("_T", bound=_t.Type)
 
 
 def get_mask(
-    mask: _t.Optional[_t.Union[_ARRAY, float, list]] = None,
+    mask: _t.Optional[_ARRAY] = None,
     x: _t.Optional[_ARRAY] = None,
 ) -> np.ndarray:
     """Return a mask array based on the provided mask or threshold.
@@ -36,17 +36,13 @@ def get_mask(
         if x is None:
             raise ValueError("Either x or mask must be provided.")
         return np.ones_like(np.array(x), dtype=bool)
-    elif isinstance(mask, (int, float)):
-        if x is None:
-            raise ValueError("Mask cannot be float if x is not provided.")
-        return np.array(x) < mask
     return np.array(mask)
 
 
 def get_masked_data(
     x: _NDARRAY,
     data: _NDARRAY,
-    mask: _t.Optional[_t.Union[_ARRAY, float]],
+    mask: _t.Optional[_ARRAY],
     mask_min_len: int = 1,
 ) -> _t.Tuple[_NDARRAY, _NDARRAY]:
     mask = get_mask(mask, x)
@@ -252,8 +248,8 @@ class FuncParamClass(metaclass=FuncParamMeta):
     def asdict(self) -> _t.Dict[str, _t.Any]:
         return self._asdict()  # type: ignore # pylint: disable=E1101
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.asdict()})"
+    # def __repr__(self):
+    #     return f"{self.__class__.__name__}({self.asdict()})"
 
 
 def mask_func(func, mask, mask_values):
@@ -415,16 +411,22 @@ class EquationClass:
         return ""
 
     def _auto_format(self) -> str:
-        if self.val < 2e3:
-            val = f"{self.val: {DEFAULT_PRECISION}}"
-            if val.strip(" -0.") == "":
-                val = f"{self.val:{DEFAULT_S_PRECISION}}"
-        else:
-            val = f"{self.val:{DEFAULT_S_PRECISION}}"
-
-        val = val.replace("e+0", "e").replace("e-0", "e-")
-
+        val = format_value(self.val)
         return f"{self.name} = {val}{self._get_units()}"
+
+    def map(
+        self,
+        func: _t.Callable,
+        func_name: _t.Optional[str] = None,
+        **kwargs,
+    ) -> "EquationClass":
+        if func_name is None:
+            func_name = func.__name__
+            if func_name == "<lambda>":
+                func_name = "G"
+        return EquationClass(
+            f"{func_name}({self.name})", func(self.val, **kwargs), self.units
+        )
 
 
 class LabelClass:
@@ -446,3 +448,60 @@ class LabelClass:
 
 def convert_to_label_instance(param_class, array):
     return LabelClass(param_class(*array))
+
+
+def format_mean_sigma(mean: float, sigma: float) -> str:
+    """
+    Format a measurement in parenthetical notation.
+
+    Example:
+        mean = 12.345, sigma = 0.067  ->  "12.345(67)"
+
+    The digits in parentheses are the digits of sigma scaled to the
+    same decimal place as the mean.
+    """
+    # Convert mean to string and count decimal places
+    mean_str = f"{mean}"
+    if "." in mean_str:
+        decimals = len(mean_str.split(".")[1])
+    else:
+        decimals = 0
+
+    # Scale sigma to those decimal places and round to integer
+    scaled_sigma = round(sigma * (10**decimals))
+
+    return f"{mean_str}({scaled_sigma})"
+
+
+def format_value(val: float, format_spec: _t.Optional[str] = None) -> str:
+    if format_spec is None:
+        format_spec = DEFAULT_PRECISION
+        format_spec_s = DEFAULT_S_PRECISION
+    else:
+        format_spec_s = format_spec
+
+    if val < 2e3:
+        val_str = f"{val: {format_spec}}"
+        if val_str.strip(" -0.") == "":
+            val_str = f"{val:{format_spec_s}}"
+    else:
+        val_str = f"{val:{format_spec_s}}"
+
+    val_str_split = val_str.split("e")
+    if len(val_str_split) == 2:
+        val_str_main, val_str_exp = val_str_split
+        val_str_main = val_str_main.rstrip("0").rstrip(".")
+        val_str_exp = val_str_exp.replace("e+0", "e").replace("e-0", "e-")
+        return f"{val_str_main}e{val_str_exp}"
+
+    return val_str_split[0].rstrip("0").rstrip(".").strip(" ")
+
+
+def format_value_to_latex(val: float, format_spec: _t.Optional[str] = None) -> str:
+    val_str = format_value(val, format_spec)
+    val_str_split = val_str.split("e")
+    if len(val_str_split) == 2:
+        val_str_main, val_str_exp = val_str_split
+        return f"{val_str_main} \\times 10^{{{val_str_exp}}}"
+
+    return val_str

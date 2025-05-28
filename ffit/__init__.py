@@ -12,6 +12,7 @@ from .front import (
     async_curve_fit_array,
     curve_fit,
     bootstrap_curve_fit,
+    bootstrap_curve_fit_2D,
 )
 from .funcs import *
 from . import stats

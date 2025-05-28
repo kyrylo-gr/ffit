@@ -35,18 +35,20 @@ class LogParam(_t.Generic[_T], FuncParamClass):
     rate: _T
     offset: _T
 
+    __latex_repr__ = r"$&amplitude \cdot \ln(&rate \cdot x) + &offset$"
+    __latex_repr_symbols__ = {
+        "amplitude": r"A",
+        "rate": r"b",
+        "offset": r"A_0",
+    }
+
     def amplitude_at_base(self, base: float = 10) -> _T:
         return self.amplitude / np.log(base)  # pylint: disable=E1101
 
     def offset_at_base(self, base: float = 10) -> _T:
-        return (
-            self.offset
-            + self.amplitude
-            * np.log(  # pylint: disable=E1101 # type: ignore
-                self.rate  # pylint: disable=E1101 # type: ignore
-            )
-            * (1 / np.log(base) - 1)
-        )
+        return self.offset + self.amplitude * np.log(  # pylint: disable=E1101 # type: ignore
+            self.rate  # pylint: disable=E1101 # type: ignore
+        ) * (1 / np.log(base) - 1)
 
 
 class LogResult(LogParam, FitResult[LogParam]):
