@@ -202,6 +202,7 @@ class FitLogic(_t.Generic[_T]):
         guess: _t.Optional[_t.Union[_T, tuple, list]] = None,
         method: _t.Literal["least_squares", "leastsq", "curve_fit"] = "leastsq",
         maxfev: int = 10000,
+        return_guess: bool = False,
         **kwargs,
     ) -> _t.Tuple[np.ndarray, np.ndarray]:
         # Mask the data and check that length of masked data is greater than lens of params
@@ -215,6 +216,8 @@ class FitLogic(_t.Generic[_T]):
         # Get a guess if not provided
         if guess is None:
             guess = self._guess(x_masked, data_masked, **kwargs)
+        if return_guess:
+            return guess, np.ones_like(self._param_len) * np.nan
 
         guess = tuple(guess)  # type: ignore
         # Fit the data

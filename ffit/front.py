@@ -28,8 +28,11 @@ def _curve_fit(
         np.inf,
     ),
     method: _t.Literal["leastsq", "curve_fit"] = "curve_fit",
+    return_guess: bool = False,
     **kwargs,
 ) -> _NDARRAY:
+    if return_guess:
+        return np.asarray(p0)
     if method == "leastsq":
         if bounds is not None and bounds != (-np.inf, np.inf):
             raise ValueError("bounds are not supported for leastsq method")
@@ -58,7 +61,7 @@ def curve_fit(
     func: _t.Callable,
     x: _NDARRAY,
     data: _NDARRAY,
-    p0: _t.Optional[_t.List[_t.Any]] = None,
+    p0: _t.Optional[_t.Iterable[_t.Any]] = None,
     *,
     bounds: _t.Optional[
         _t.Union[_t.List[_t.Tuple[_t.Any, _t.Any]], _t.Tuple[_t.Any, _t.Any]]
@@ -67,6 +70,7 @@ def curve_fit(
         np.inf,
     ),
     method: _t.Literal["leastsq", "curve_fit"] = "curve_fit",
+    return_guess: bool = False,
     **kwargs,
 ) -> FitResult:
     """Fit a curve with curve_fit method.
@@ -85,7 +89,16 @@ def curve_fit(
     Returns:
         FitResult: Fit result.
     """
-    res = _curve_fit(func, x, data, p0=p0, bounds=bounds, method=method, **kwargs)
+    res = _curve_fit(
+        func,
+        x,
+        data,
+        p0=p0,
+        bounds=bounds,
+        method=method,
+        return_guess=return_guess,
+        **kwargs,
+    )
     res = np.asarray(res)
 
     # Get ordered parameter names

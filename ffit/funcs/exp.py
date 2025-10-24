@@ -46,8 +46,8 @@ class ExpParam(_t.Generic[_T], FuncParamClass):
 
     # @property
     # def _std_tau(self) -> _T:
-    # original_params = getattr(self, "__original_params", self)
-    # return np.abs(params_std.rate) / (self.rate * 2)
+    #     original_params = getattr(self, "__original_params", self)
+    #     return np.abs(params_std.rate) / (self.rate * 2)
 
 
 class ExpResult(ExpParam, FitResult[ExpParam]):

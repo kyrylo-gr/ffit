@@ -5,6 +5,7 @@ import numpy as np
 from ..fit_logic import FitLogic
 from ..fit_results import FitResult
 from ..utils import _NDARRAY, FuncParamClass, check_min_len, convert_param_class
+from .exp_decaying_cos import ExpDecayingCos
 
 __all__ = ["Cos"]
 
@@ -150,3 +151,5 @@ class Cos(FitLogic[CosResult]):  # type: ignore
     @classmethod
     def mask(cls, **kwargs) -> "Cos":
         return super().mask(**kwargs)
+
+    ExpDecaying = ExpDecayingCos

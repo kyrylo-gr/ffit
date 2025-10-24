@@ -35,17 +35,18 @@ class ExpDecayingCosParam(_t.Generic[_T], FuncParamClass):
             Calculates the rate of decay.
     """
 
-    keys = ("amplitude0", "frequency", "phi0", "offset", "tau")
+    keys = ("amplitude0", "frequency", "phi0", "offset", "tau", "drift")
 
     amplitude0: _T
     frequency: _T
     phi0: _T
     offset: _T
     tau: _T
+    drift: _T
 
     __latex_repr__ = (
         r"$&amplitude0 \cdot \cos(2\pi \cdot &frequency \cdot x + &phi0) \cdot "
-        r"e^{-x/&tau} + &offset$"
+        r"e^{-x/&tau} + &offset + &drift \cdot x$"
     )
     __latex_repr_symbols__ = {
         "amplitude0": r"A_0",
@@ -53,6 +54,7 @@ class ExpDecayingCosParam(_t.Generic[_T], FuncParamClass):
         "phi0": r"\phi_0",
         "offset": r"A_{\text{offset}}",
         "tau": r"\tau",
+        "drift": r"d",
     }
 
     @property
@@ -70,7 +72,14 @@ class ExpDecayingCosResult(ExpDecayingCosParam, FitResult[ExpDecayingCosParam]):
 
 def normalize_res_list(x: _t.Sequence[float]) -> _NDARRAY:
     return np.array(
-        [abs(x[0]), x[1], (x[2] + (np.pi if x[0] < 0 else 0)) % (2 * np.pi), x[3], x[4]]
+        [
+            abs(x[0]),
+            x[1],
+            (x[2] + (np.pi if x[0] < 0 else 0)) % (2 * np.pi),
+            x[3],
+            x[4],
+            x[5],
+        ]
     )
 
 
@@ -81,10 +90,12 @@ def exp_decaying_cos_func(
     phi0: float,
     offset: float,
     tau: float,
+    drift: float,
 ):
     return (
         amplitude0 * np.cos(2 * np.pi * x * frequency + phi0) * np.exp(-x / tau)
         + offset
+        + drift * x
     )
 
 
@@ -125,8 +136,12 @@ def exp_decaying_cos_guess(x: _NDARRAY, y: _NDARRAY, **kwargs):
     phase: float = np.imag(fft_vals[freq_max_index])
     tau: float = (max(x) - min(x)) / 5
 
+    drift: float = 0
+
     return np.array(
-        normalize_res_list([sign_ * amp_guess, freq_guess, phase, off_guess, tau])
+        normalize_res_list(
+            [sign_ * amp_guess, freq_guess, phase, off_guess, tau, drift]
+        )
     )
 
 
@@ -172,6 +187,7 @@ class ExpDecayingCos(FitLogic[ExpDecayingCosResult]):  # type: ignore
         phi0: float = None,  # type: ignore
         offset: float = None,  # type: ignore
         tau: float = None,  # type: ignore
+        drift: float = None,  # type: ignore
     ) -> "ExpDecayingCos": ...
 
     @classmethod
